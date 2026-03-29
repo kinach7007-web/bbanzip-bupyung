@@ -60,7 +60,9 @@ service cloud.firestore {
     // Fields:
     //   - name: string
     //   - email: string
-    //   - role: string (admin/user)
+    //   - role: string (운영자/점장/부점장/매니저)
+    //   - isApproved: bool
+    //   - isBlocked: bool
     //
     // ===============================================================
 
@@ -74,8 +76,22 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', '운영자'] ||
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == '운영자' ||
           (request.auth.token.email == "kinach7007@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isApproved() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isApproved == true || isAdmin());
+    }
+
+    function isNotBlocked() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isBlocked == false;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
     function hasRequiredFields(fields) {
@@ -118,37 +134,45 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && request.auth.uid == userId && 
-                    hasOnlyAllowedFields(['name', 'email', 'role']) &&
-                    request.resource.data.role in ['운영자', '점장', '부점장', '매니저'];
-      allow update: if isAdmin() || (isOwner(userId) && hasOnlyAllowedFields(['name', 'email', 'role']) && request.resource.data.role == resource.data.role);
+                    hasOnlyAllowedFields(['name', 'email', 'role', 'isApproved', 'isBlocked']) &&
+                    request.resource.data.role in ['운영자', '점장', '부점장', '매니저'] &&
+                    (request.resource.data.isApproved == (request.auth.token.email == "kinach7007@gmail.com")) &&
+                    request.resource.data.isBlocked == false;
+      allow update: if isAdmin() || 
+                    (isOwner(userId) && 
+                     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'email']) &&
+                     request.resource.data.role == resource.data.role &&
+                     request.resource.data.isApproved == resource.data.isApproved &&
+                     request.resource.data.isBlocked == resource.data.isBlocked);
+      allow delete: if isAdmin();
     }
 
     match /transactions/{transactionId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidTransaction(request.resource.data);
-      allow update: if isAuthenticated() && isValidTransaction(request.resource.data);
-      allow delete: if isAuthenticated();
+      allow read: if isApproved() && isNotBlocked();
+      allow create: if isApproved() && isNotBlocked() && isValidTransaction(request.resource.data);
+      allow update: if isApproved() && isNotBlocked() && isValidTransaction(request.resource.data);
+      allow delete: if isApproved() && isNotBlocked();
     }
 
     match /cashBalanceData/{month} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated() && isValidCashBalance(request.resource.data);
+      allow read: if isApproved() && isNotBlocked();
+      allow create, update: if isApproved() && isNotBlocked() && isValidCashBalance(request.resource.data);
     }
 
     match /salaryState/{month} {
-      allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated() && isValidSalaryState(request.resource.data);
+      allow read: if isApproved() && isNotBlocked();
+      allow create, update: if isApproved() && isNotBlocked() && isValidSalaryState(request.resource.data);
     }
 
     match /archives/{archiveId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      allow read: if isApproved() && isNotBlocked();
+      allow create: if isApproved() && isNotBlocked();
       allow update, delete: if isAdmin();
     }
 
     match /settings/global {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow read: if isApproved() && isNotBlocked();
+      allow write: if isApproved() && isNotBlocked();
     }
   }
 }

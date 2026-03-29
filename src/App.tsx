@@ -24,7 +24,9 @@ import {
   Archive as ArchiveIcon,
   Lock,
   Trash2,
-  LogOut
+  LogOut,
+  ShieldAlert,
+  Clock
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -45,7 +47,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { 
-  db, auth, loginWithGoogle, logout, onAuthStateChanged, handleFirestoreError, OperationType,
+  db, auth, logout, onAuthStateChanged, handleFirestoreError, OperationType,
   collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, writeBatch,
   type FirebaseUser 
 } from './firebase';
@@ -56,6 +58,7 @@ import { CashBalanceSheet } from './components/CashBalanceSheet';
 import { SalaryDashboard } from './components/SalaryDashboard';
 import { ArchiveViewer } from './components/ArchiveViewer';
 import { Login, type User } from './components/Login';
+import { UserManagement } from './components/UserManagement';
 import { type Employee, type PartTimeWorker, type PartTimeRecord, type DispatchRecord, type SalaryState, type MonthlyArchive } from './types';
 
 const currentDay = new Date().getDate();
@@ -289,9 +292,11 @@ export default function App() {
             const userData = userDoc.data();
             setUser({
               id: firebaseUser.uid,
-              name: firebaseUser.displayName || '사용자',
+              name: userData.name || '사용자',
               role: userData.role as any,
-              email: firebaseUser.email || ''
+              email: firebaseUser.email || '',
+              isApproved: userData.isApproved,
+              isBlocked: userData.isBlocked
             });
             setIsLoginModalOpen(false);
           } else {
@@ -313,9 +318,27 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Real-time Sync: Transactions
+  // Real-time Sync: User Status (to react to approval/blocking immediately)
   useEffect(() => {
     if (!isAuthReady || !user) return;
+    const docRef = doc(db, 'users', user.id);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        setUser(prev => prev ? {
+          ...prev,
+          isApproved: userData.isApproved,
+          isBlocked: userData.isBlocked,
+          role: userData.role
+        } : null);
+      }
+    }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.id}`));
+    return () => unsubscribe();
+  }, [isAuthReady, user?.id]);
+
+  // Real-time Sync: Transactions
+  useEffect(() => {
+    if (!isAuthReady || !user || !user.isApproved || user.isBlocked) return;
     const q = query(collection(db, 'transactions'), where('month', '==', currentMonth));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ ...doc.data() } as Transaction));
@@ -326,7 +349,7 @@ export default function App() {
 
   // Real-time Sync: Cash Balance
   useEffect(() => {
-    if (!isAuthReady || !user) return;
+    if (!isAuthReady || !user || !user.isApproved || user.isBlocked) return;
     const docRef = doc(db, 'cashBalanceData', currentMonth);
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -343,7 +366,7 @@ export default function App() {
 
   // Real-time Sync: Salary State
   useEffect(() => {
-    if (!isAuthReady || !user) return;
+    if (!isAuthReady || !user || !user.isApproved || user.isBlocked) return;
     const docRef = doc(db, 'salaryState', currentMonth);
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -360,7 +383,7 @@ export default function App() {
 
   // Real-time Sync: Archives
   useEffect(() => {
-    if (!isAuthReady || !user) return;
+    if (!isAuthReady || !user || !user.isApproved || user.isBlocked) return;
     const q = query(collection(db, 'archives'), orderBy('month', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ ...doc.data() } as MonthlyArchive));
@@ -371,7 +394,7 @@ export default function App() {
 
   // Real-time Sync: Settings
   useEffect(() => {
-    if (!isAuthReady || !user) return;
+    if (!isAuthReady || !user || !user.isApproved || user.isBlocked) return;
     const docRef = doc(db, 'settings', 'global');
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -944,6 +967,52 @@ export default function App() {
     }
   };
 
+  if (user?.isBlocked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-red-100 w-full max-w-md border border-red-100 text-center">
+          <div className="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mb-8 mx-auto">
+            <ShieldAlert className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">계정이 차단되었습니다</h2>
+          <p className="text-gray-500 mb-8 leading-relaxed">
+            관리자에 의해 계정 이용이 제한되었습니다.<br />
+            문의사항은 관리자에게 연락해 주세요.
+          </p>
+          <button 
+            onClick={() => logout()}
+            className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all"
+          >
+            로그아웃
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (user && !user.isApproved && user.role !== '운영자') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-amber-100 w-full max-w-md border border-amber-100 text-center">
+          <div className="w-20 h-20 bg-amber-50 text-amber-600 rounded-3xl flex items-center justify-center mb-8 mx-auto">
+            <Clock className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">승인 대기 중</h2>
+          <p className="text-gray-500 mb-8 leading-relaxed">
+            {user.name}님, 가입을 환영합니다!<br />
+            관리자의 승인이 완료된 후 서비스를 이용하실 수 있습니다. 잠시만 기다려 주세요.
+          </p>
+          <button 
+            onClick={() => logout()}
+            className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all"
+          >
+            로그아웃
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-[#F8F9FA] text-[#1A1C1E] font-sans selection:bg-emerald-100 pb-20">
@@ -1012,6 +1081,17 @@ export default function App() {
               >
                 보관함
               </button>
+              {user?.role === '운영자' && (
+                <button 
+                  onClick={() => setActiveTab('users')}
+                  className={cn(
+                    "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
+                    activeTab === 'users' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  사용자 관리
+                </button>
+              )}
             </nav>
           </div>
           <div className="flex items-center gap-2 md:gap-3">
@@ -1244,6 +1324,8 @@ export default function App() {
             salaryState={salaryState}
             setSalaryState={setSalaryState}
           />
+        ) : activeTab === 'users' ? (
+          <UserManagement currentUser={user!} />
         ) : (
           <ArchiveViewer 
             archives={archives} 
@@ -1390,6 +1472,19 @@ export default function App() {
           <ArchiveIcon className={cn("w-6 h-6", activeTab === 'archives' ? "fill-emerald-50" : "")} />
           <span className="text-[10px] font-bold">보관함</span>
         </button>
+
+        {user?.role === '운영자' && (
+          <button 
+            onClick={() => setActiveTab('users')}
+            className={cn(
+              "flex flex-col items-center gap-1 transition-all",
+              activeTab === 'users' ? "text-emerald-600" : "text-gray-400"
+            )}
+          >
+            <Users className={cn("w-6 h-6", activeTab === 'users' ? "fill-emerald-50" : "")} />
+            <span className="text-[10px] font-bold">사용자</span>
+          </button>
+        )}
       </div>
 
       {/* Footer */}

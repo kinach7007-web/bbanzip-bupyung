@@ -75,9 +75,11 @@
       "properties": {
         "name": { "type": "string" },
         "email": { "type": "string", "format": "email" },
-        "role": { "type": "string", "enum": ["운영자", "점장", "부점장", "매니저"] }
+        "role": { "type": "string", "enum": ["운영자", "점장", "부점장", "매니저"] },
+        "isApproved": { "type": "boolean", "default": false },
+        "isBlocked": { "type": "boolean", "default": false }
       },
-      "required": ["name", "email", "role"]
+      "required": ["name", "email", "role", "isApproved", "isBlocked"]
     }
   },
   "firestore": {
