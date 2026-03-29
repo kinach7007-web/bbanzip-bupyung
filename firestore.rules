@@ -1,0 +1,154 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: transactions
+    // Document ID: auto-generated
+    // Fields:
+    //   - id: string (required)
+    //   - date: string (required, YYYY-MM-DD)
+    //   - category: string (required)
+    //   - name: string (required)
+    //   - amount: number (required)
+    //   - status: string (optional, paid/unpaid)
+    //   - author: string (optional)
+    //   - month: string (required, YYYY-MM)
+    //
+    // Collection: cashBalanceData
+    // Document ID: month (YYYY-MM)
+    // Fields:
+    //   - month: string (required)
+    //   - title: string
+    //   - carryover: number
+    //   - isCarryoverFixed: bool
+    //   - rows: list (required)
+    //
+    // Collection: salaryState
+    // Document ID: month (YYYY-MM)
+    // Fields:
+    //   - month: string (required)
+    //   - employees: list
+    //   - partTimeWorkers: list
+    //   - partTimeDays: list
+    //   - dispatchDays: list
+    //   - dispatchWorkers: list
+    //   - nationalHealth: number
+    //   - nationalPension: number
+    //   - employmentInsurance: number
+    //   - industrialAccidentInsurance: number
+    //
+    // Collection: archives
+    // Document ID: auto-generated
+    // Fields:
+    //   - id: string (required)
+    //   - month: string (required)
+    //   - summary: map (required)
+    //   - timestamp: string (required)
+    //   - data: map (required)
+    //
+    // Collection: settings
+    // Document ID: global
+    // Fields:
+    //   - vendorList: map
+    //
+    // Collection: users
+    // Document ID: uid
+    // Fields:
+    //   - name: string
+    //   - email: string
+    //   - role: string (admin/user)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "kinach7007@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidTransaction(data) {
+      return data.id is string &&
+             data.date is string && data.date.matches("^\\d{4}-\\d{2}-\\d{2}$") &&
+             data.category is string &&
+             data.name is string && data.name.size() < 100 &&
+             data.amount is number &&
+             data.month is string && data.month.matches("^\\d{4}-\\d{2}$");
+    }
+
+    function isValidCashBalance(data) {
+      return data.month is string &&
+             data.rows is list && data.rows.size() <= 31;
+    }
+
+    function isValidSalaryState(data) {
+      return data.month is string &&
+             data.employees is list &&
+             data.partTimeWorkers is list;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId && 
+                    hasOnlyAllowedFields(['name', 'email', 'role']) &&
+                    request.resource.data.role == 'user';
+      allow update: if isAdmin();
+    }
+
+    match /transactions/{transactionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidTransaction(request.resource.data);
+      allow update: if isAuthenticated() && isValidTransaction(request.resource.data);
+      allow delete: if isAuthenticated();
+    }
+
+    match /cashBalanceData/{month} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && isValidCashBalance(request.resource.data);
+    }
+
+    match /salaryState/{month} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && isValidSalaryState(request.resource.data);
+    }
+
+    match /archives/{archiveId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    match /settings/global {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+  }
+}
