@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useState, useEffect, Component } from 'react';
+import React, { useMemo, useState, useEffect, Component, type ReactNode, type ErrorInfo } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -173,6 +173,71 @@ interface Transaction {
   month: string;
 }
 
+// Error Boundary Component
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: any;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  props: ErrorBoundaryProps;
+  state: ErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
+
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.props = props;
+  }
+
+  public static getDerivedStateFromError(error: any): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  public componentDidCatch(error: any, errorInfo: ErrorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  public render() {
+    if (this.state.hasError) {
+      let errorMessage = "알 수 없는 오류가 발생했습니다.";
+      try {
+        const parsedError = JSON.parse(this.state.error.message);
+        errorMessage = `Firestore 오류: ${parsedError.operationType} @ ${parsedError.path}\n${parsedError.error}`;
+      } catch (e) {
+        errorMessage = this.state.error?.message || errorMessage;
+      }
+
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+          <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full border border-red-100">
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+              <Info className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 text-center mb-4">문제가 발생했습니다</h2>
+            <pre className="text-xs bg-gray-50 p-4 rounded-xl text-gray-600 overflow-auto max-h-40 mb-6 whitespace-pre-wrap">
+              {errorMessage}
+            </pre>
+            <button 
+              onClick={() => window.location.reload()}
+              className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all"
+            >
+              새로고침
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const [isManualToday, setIsManualToday] = useState(false);
   const [currentMonth, setCurrentMonth] = useState<string>(() => {
@@ -215,16 +280,30 @@ export default function App() {
 
   // Firebase Auth Listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const userData: User = {
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName || '사용자',
-          role: '운영자', // Default role for now
-          email: firebaseUser.email || ''
-        };
-        setUser(userData);
-        setIsLoginModalOpen(false);
+        try {
+          // Check Firestore for user role
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUser({
+              id: firebaseUser.uid,
+              name: firebaseUser.displayName || '사용자',
+              role: userData.role as any,
+              email: firebaseUser.email || ''
+            });
+            setIsLoginModalOpen(false);
+          } else {
+            // User exists in Auth but not in Firestore (needs role selection)
+            setUser(null);
+            setIsLoginModalOpen(true);
+          }
+        } catch (error) {
+          console.error("Error fetching user data", error);
+          setUser(null);
+          setIsLoginModalOpen(true);
+        }
       } else {
         setUser(null);
         setIsLoginModalOpen(true);
@@ -866,7 +945,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] text-[#1A1C1E] font-sans selection:bg-emerald-100 pb-20">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-[#F8F9FA] text-[#1A1C1E] font-sans selection:bg-emerald-100 pb-20">
       {isLoginModalOpen ? (
         <Login onLogin={(loggedInUser) => {
           setUser(loggedInUser);
@@ -1327,5 +1407,6 @@ export default function App() {
       </>
       )}
     </div>
+    </ErrorBoundary>
   );
 }

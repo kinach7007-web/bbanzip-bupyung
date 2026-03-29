@@ -67,9 +67,24 @@
       "properties": {
         "vendorList": { "type": "object" }
       }
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile and role",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["운영자", "점장", "부점장", "매니저"] }
+      },
+      "required": ["name", "email", "role"]
     }
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
     "/transactions/{transactionId}": {
       "schema": "Transaction",
       "description": "All transactions"

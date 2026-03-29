@@ -1,7 +1,10 @@
 {
-  "apiKey": "dummy",
-  "authDomain": "dummy",
-  "projectId": "dummy",
-  "appId": "dummy",
-  "firestoreDatabaseId": "dummy"
+  "projectId": "gen-lang-client-0675907373",
+  "appId": "1:1008014518740:web:d0e58248865f6edbbd4e41",
+  "apiKey": "AIzaSyBs2cAQIFuDjvT-_sqscHR7GIhMzAZXpS4",
+  "authDomain": "gen-lang-client-0675907373.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-a955940d-4928-4e23-8fef-e9ca8dc3f63a",
+  "storageBucket": "gen-lang-client-0675907373.firebasestorage.app",
+  "messagingSenderId": "1008014518740",
+  "measurementId": ""
 }

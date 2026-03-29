@@ -74,7 +74,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', '운영자'] ||
           (request.auth.token.email == "kinach7007@gmail.com" && request.auth.token.email_verified == true));
     }
 
@@ -119,8 +119,8 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && request.auth.uid == userId && 
                     hasOnlyAllowedFields(['name', 'email', 'role']) &&
-                    request.resource.data.role == 'user';
-      allow update: if isAdmin();
+                    request.resource.data.role in ['운영자', '점장', '부점장', '매니저'];
+      allow update: if isAdmin() || (isOwner(userId) && hasOnlyAllowedFields(['name', 'email', 'role']) && request.resource.data.role == resource.data.role);
     }
 
     match /transactions/{transactionId} {
