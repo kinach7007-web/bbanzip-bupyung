@@ -109,7 +109,14 @@ export function UserManagement({ currentUser }: { currentUser: User }) {
                       <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-bold">
                         {user.name.charAt(0)}
                       </div>
-                      <span className="font-bold text-gray-900">{user.name}</span>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-gray-900 flex items-center gap-2">
+                          {user.name}
+                          {user.id === currentUser.id && (
+                            <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-600 text-[10px] rounded-md">나</span>
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-gray-500 text-sm">{user.email}</td>
@@ -154,8 +161,8 @@ export function UserManagement({ currentUser }: { currentUser: User }) {
                           user.isApproved 
                             ? 'text-amber-600 hover:bg-amber-50' 
                             : 'text-emerald-600 hover:bg-emerald-50'
-                        }`}
-                        title={user.isApproved ? "승인 취소" : "승인하기"}
+                        } ${user.id === currentUser.id ? 'opacity-30 cursor-not-allowed' : ''}`}
+                        title={user.id === currentUser.id ? "본인 계정은 수정할 수 없습니다" : (user.isApproved ? "승인 취소" : "승인하기")}
                       >
                         {user.isApproved ? <XCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
                       </button>
@@ -167,8 +174,8 @@ export function UserManagement({ currentUser }: { currentUser: User }) {
                           user.isBlocked 
                             ? 'text-emerald-600 hover:bg-emerald-50' 
                             : 'text-red-600 hover:bg-red-50'
-                        }`}
-                        title={user.isBlocked ? "차단 해제" : "사용자 차단"}
+                        } ${user.id === currentUser.id ? 'opacity-30 cursor-not-allowed' : ''}`}
+                        title={user.id === currentUser.id ? "본인 계정은 차단할 수 없습니다" : (user.isBlocked ? "차단 해제" : "사용자 차단")}
                       >
                         {user.isBlocked ? <Unlock className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                       </button>
@@ -176,8 +183,8 @@ export function UserManagement({ currentUser }: { currentUser: User }) {
                       <button
                         onClick={() => handleDeleteUser(user.id, user.name)}
                         disabled={user.id === currentUser.id}
-                        className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                        title="사용자 삭제"
+                        className={`p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all ${user.id === currentUser.id ? 'opacity-30 cursor-not-allowed' : ''}`}
+                        title={user.id === currentUser.id ? "본인 계정은 삭제할 수 없습니다" : "사용자 삭제"}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

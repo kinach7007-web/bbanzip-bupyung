@@ -113,10 +113,10 @@ export const PL_DATA = {
       '우리과일야채(조병윤)', '모아상사(공산품)', '대형마트 & 부평시장', '편의점', '다이소', '쌀(병남형님)', 
       '모노마트', '화미(다화에프앤비)', '웰빙나눔유통', '주유', '주류 원가', '음료 원가'
     ],
-    '인건비': ['직원급여', '알바급여', '파출급여'],
+    '인건비': ['직원급여', '알바급여', '파출급여', '4대보험'],
     '변동비': [
       '가스비', '전기세', '상하수도요금', '썬주차장', 
-      '음식물처리', '4대보험', '인터넷 비품 결제'
+      '음식물처리', '인터넷 비품 결제'
     ],
     '마케팅': ['마케팅'],
     '카드수수료(1.9%)': ['카드수수료'],
@@ -416,6 +416,15 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
     level: 1
   },
   {
+    id: '4-4',
+    category: '4대보험',
+    total: 0,
+    ratio: 0,
+    remarks: '',
+    daily: Array(31).fill(0),
+    level: 1
+  },
+  {
     id: '5',
     category: '5. 고정비',
     total: 0,
@@ -554,15 +563,6 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
   },
   {
     id: '6-6',
-    category: '4대보험',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
-    id: '6-7',
     category: '인터넷 비품 결제',
     total: 0,
     ratio: 0,
@@ -571,7 +571,7 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
     level: 1
   },
   {
-    id: '6-8',
+    id: '6-7',
     category: '기타 변동비',
     total: 0,
     ratio: 0,

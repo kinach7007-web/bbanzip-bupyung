@@ -86,6 +86,7 @@ export function PLDashboard({
         { id: '4-1', amount: salaryBreakdown.employeesTotal },
         { id: '4-2', amount: salaryBreakdown.partTimeTotal },
         { id: '4-3', amount: salaryBreakdown.dispatchTotal },
+        { id: '4-4', amount: salaryBreakdown.insuranceTotal },
     ];
     
     salaryRows.forEach(s => {

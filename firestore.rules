@@ -76,18 +76,23 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == '운영자' ||
-          (request.auth.token.email == "kinach7007@gmail.com" && request.auth.token.email_verified == true));
+        (request.auth.token.email == "kinach7007@gmail.com" || 
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == '운영자'));
     }
 
     function isApproved() {
       return isAuthenticated() && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isApproved == true || isAdmin());
+        (request.auth.token.email == "kinach7007@gmail.com" || 
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isApproved == true));
     }
 
     function isNotBlocked() {
       return isAuthenticated() && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isBlocked == false;
+        (request.auth.token.email == "kinach7007@gmail.com" || 
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isBlocked == false));
     }
 
     function isOwner(userId) {
@@ -149,19 +154,20 @@ service cloud.firestore {
 
     match /transactions/{transactionId} {
       allow read: if isApproved() && isNotBlocked();
-      allow create: if isApproved() && isNotBlocked() && isValidTransaction(request.resource.data);
-      allow update: if isApproved() && isNotBlocked() && isValidTransaction(request.resource.data);
-      allow delete: if isApproved() && isNotBlocked();
+      allow create, update: if isApproved() && isNotBlocked() && isValidTransaction(request.resource.data);
+      allow delete: if isAdmin() || (isApproved() && isNotBlocked());
     }
 
     match /cashBalanceData/{month} {
       allow read: if isApproved() && isNotBlocked();
       allow create, update: if isApproved() && isNotBlocked() && isValidCashBalance(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     match /salaryState/{month} {
       allow read: if isApproved() && isNotBlocked();
       allow create, update: if isApproved() && isNotBlocked() && isValidSalaryState(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     match /archives/{archiveId} {
@@ -173,6 +179,7 @@ service cloud.firestore {
     match /settings/global {
       allow read: if isApproved() && isNotBlocked();
       allow write: if isApproved() && isNotBlocked();
+      allow delete: if isAdmin();
     }
   }
 }

@@ -109,8 +109,8 @@ export function SalaryDashboard({
   const [insuranceInputType, setInsuranceInputType] = useState<string>('국민건강');
   const [insuranceInputAmount, setInsuranceInputAmount] = useState<string>('');
 
-  const totalDispatch = useMemo(() => dispatchDays.reduce((sum, dayRecords) => sum + dayRecords.reduce((a, b) => a + b.amount, 0), 0), [dispatchDays]);
-  const totalPartTime = useMemo(() => partTimeDays.reduce((sum, dayRecords) => sum + dayRecords.reduce((a, b) => a + b.amount, 0), 0), [partTimeDays]);
+  const totalDispatch = useMemo(() => dispatchDays.reduce((sum, dayRecords) => sum + (Array.isArray(dayRecords) ? dayRecords.reduce((a, b) => a + b.amount, 0) : 0), 0), [dispatchDays]);
+  const totalPartTime = useMemo(() => partTimeDays.reduce((sum, dayRecords) => sum + (Array.isArray(dayRecords) ? dayRecords.reduce((a, b) => a + b.amount, 0) : 0), 0), [partTimeDays]);
 
   const handleAddDispatch = () => {
     const worker = dispatchWorkers.find(w => w.id === dispatchInputWorkerId);
@@ -530,7 +530,7 @@ export function SalaryDashboard({
                 <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50/50">
                   <h3 className="text-sm font-bold text-gray-700">출근 현황</h3>
                   <span className="text-xs text-gray-500 font-medium bg-white px-2.5 py-1 rounded-full border border-gray-200">
-                    총 {partTimeDays.filter(r => r.length > 0).length}일 ({partTimeDays.reduce((sum, r) => sum + r.length, 0)}건)
+                    총 {partTimeDays.filter(r => Array.isArray(r) && r.length > 0).length}일 ({partTimeDays.reduce((sum, r) => sum + (Array.isArray(r) ? r.length : 0), 0)}건)
                   </span>
                 </div>
                 <div className="overflow-x-auto">
@@ -700,7 +700,7 @@ export function SalaryDashboard({
                 <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50/50">
                   <h3 className="text-sm font-bold text-gray-700">출근 현황</h3>
                   <span className="text-xs text-gray-500 font-medium bg-white px-2.5 py-1 rounded-full border border-gray-200">
-                    총 {dispatchDays.filter(r => r.length > 0).length}일 ({dispatchDays.reduce((sum, r) => sum + r.length, 0)}건)
+                    총 {dispatchDays.filter(r => Array.isArray(r) && r.length > 0).length}일 ({dispatchDays.reduce((sum, r) => sum + (Array.isArray(r) ? r.length : 0), 0)}건)
                   </span>
                 </div>
                 <div className="overflow-x-auto">

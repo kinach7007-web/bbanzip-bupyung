@@ -26,7 +26,9 @@ import {
   Trash2,
   LogOut,
   ShieldAlert,
-  Clock
+  Clock,
+  History,
+  Download
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -43,12 +45,13 @@ import {
   Bar,
   Legend
 } from 'recharts';
+import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { 
   db, auth, logout, onAuthStateChanged, handleFirestoreError, OperationType,
-  collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, writeBatch,
+  collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, writeBatch, terminate, getDocFromServer,
   type FirebaseUser 
 } from './firebase';
 import { PL_DATA, KPI_DATA, CASH_BALANCE_DATA } from './data';
@@ -58,6 +61,7 @@ import { CashBalanceSheet } from './components/CashBalanceSheet';
 import { SalaryDashboard } from './components/SalaryDashboard';
 import { ArchiveViewer } from './components/ArchiveViewer';
 import { Login, type User } from './components/Login';
+import { PasswordReset } from './components/PasswordReset';
 import { UserManagement } from './components/UserManagement';
 import { type Employee, type PartTimeWorker, type PartTimeRecord, type DispatchRecord, type SalaryState, type MonthlyArchive } from './types';
 
@@ -87,11 +91,13 @@ const INITIAL_EMPLOYEES: Employee[] = [
   }
 ];
 
-const generateInitialCashData = (monthStr: string) => {
+const generateInitialCashData = (monthStr: string, uid?: string) => {
   const [year, month] = monthStr.split('-').map(Number);
   const days = new Date(year, month, 0).getDate();
   const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
   return {
+    month: monthStr,
+    uid: uid || '',
     title: "▣ 현금 시재 현황 : 입금/지출 내역표",
     carryover: 0,
     isCarryoverFixed: false,
@@ -116,7 +122,7 @@ const generateInitialCashData = (monthStr: string) => {
   };
 };
 
-const generateInitialSalaryState = (monthStr: string): SalaryState => {
+const generateInitialSalaryState = (monthStr: string, uid?: string): SalaryState => {
   const [year, month] = monthStr.split('-').map(Number);
   const days = new Date(year, month, 0).getDate();
   
@@ -125,6 +131,8 @@ const generateInitialSalaryState = (monthStr: string): SalaryState => {
   const dayForMonth = isCurrentMonth ? now.getDate() : days;
 
   return {
+    month: monthStr,
+    uid: uid || '',
     employees: INITIAL_EMPLOYEES.map(emp => emp.isAutoWorkDays ? { ...emp, totalWorkDays: dayForMonth } : emp),
     partTimeWorkers: [{ id: '1', name: '서현씨', residentNumber: '', defaultHourlyWage: 11000 }],
     partTimeDays: Array.from({ length: days }, () => []),
@@ -269,53 +277,134 @@ export default function App() {
 
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(true);
+  const isAuthReadyRef = React.useRef(false);
+  const [showForceLogin, setShowForceLogin] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+  // Sync ref with state
+  useEffect(() => {
+    isAuthReadyRef.current = isAuthReady;
+  }, [isAuthReady]);
   const [activeTab, setActiveTab] = useState('cash');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [cashBalanceData, setCashBalanceData] = useState(() => generateInitialCashData(currentMonth));
+  const [cashBalanceData, setCashBalanceData] = useState(() => generateInitialCashData(currentMonth, user?.id));
   const [vendorList, setVendorList] = useState<Record<string, string[]>>(PL_DATA.vendors || {});
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const [archives, setArchives] = useState<MonthlyArchive[]>([]);
   const [viewingArchive, setViewingArchive] = useState<MonthlyArchive | null>(null);
   const [isClosingMonth, setIsClosingMonth] = useState(false);
-  const [salaryState, setSalaryState] = useState<SalaryState>(() => generateInitialSalaryState(currentMonth));
+  const [isClosingLoading, setIsClosingLoading] = useState(false);
+  const [salaryState, setSalaryState] = useState<SalaryState>(() => generateInitialSalaryState(currentMonth, user?.id));
+
+  // Password Reset State
+  const [resetCode, setResetCode] = useState<string | null>(null);
+  const [isResetMode, setIsResetMode] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
+    const oobCode = params.get('oobCode');
+    if (mode === 'resetPassword' && oobCode) {
+      setResetCode(oobCode);
+      setIsResetMode(true);
+      setIsLoginModalOpen(false);
+    }
+  }, []);
 
   // Firebase Auth Listener
   useEffect(() => {
+    console.log("Auth listener initialized");
+    
+    // Safety timeout: if auth doesn't respond in 20 seconds, force ready state
+    const timeoutId = setTimeout(() => {
+      if (!isAuthReadyRef.current) {
+        console.warn("Auth initialization timed out, forcing ready state");
+        setIsAuthReady(true);
+      }
+    }, 20000);
+
+    // Show force login button after 5 seconds
+    const forceLoginTimeoutId = setTimeout(() => {
+      if (!isAuthReadyRef.current) {
+        setShowForceLogin(true);
+      }
+    }, 5000);
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          // Check Firestore for user role
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setUser({
-              id: firebaseUser.uid,
-              name: userData.name || '사용자',
-              role: userData.role as any,
-              email: firebaseUser.email || '',
-              isApproved: userData.isApproved,
-              isBlocked: userData.isBlocked
-            });
-            setIsLoginModalOpen(false);
-          } else {
-            // User exists in Auth but not in Firestore (needs role selection)
-            setUser(null);
-            setIsLoginModalOpen(true);
+      console.log("Auth state changed:", firebaseUser?.uid);
+      
+      if (!firebaseUser) {
+        setUser(null);
+        setIsLoginModalOpen(true);
+        setIsAuthReady(true);
+        clearTimeout(timeoutId);
+        clearTimeout(forceLoginTimeoutId);
+        return;
+      }
+
+      try {
+        // Fetch user profile with a timeout
+        console.log("Fetching user doc for:", firebaseUser.uid);
+        
+        const fetchUserDoc = async () => {
+          const docRef = doc(db, 'users', firebaseUser.uid);
+          return await getDoc(docRef);
+        };
+
+        const userDocPromise = fetchUserDoc();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("User profile fetch timed out")), 15000)
+        );
+
+        const userDoc = await Promise.race([userDocPromise, timeoutPromise]) as any;
+        
+        console.log("User doc exists:", userDoc.exists());
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const isAdminEmail = firebaseUser.email?.toLowerCase() === 'kinach7007@gmail.com';
+          
+          // Auto-update Firestore if master admin is not approved or has wrong role
+          if (isAdminEmail && (userData.role !== '운영자' || !userData.isApproved || userData.isBlocked)) {
+            updateDoc(doc(db, 'users', firebaseUser.uid), {
+              role: '운영자',
+              isApproved: true,
+              isBlocked: false
+            }).catch(e => console.error("Error auto-updating master admin", e));
           }
-        } catch (error) {
-          console.error("Error fetching user data", error);
+
+          setUser({
+            id: firebaseUser.uid,
+            name: userData.name || '사용자',
+            role: isAdminEmail ? '운영자' : (userData.role as any),
+            email: firebaseUser.email || '',
+            isApproved: isAdminEmail || userData.isApproved,
+            isBlocked: isAdminEmail ? false : userData.isBlocked
+          });
+          setIsLoginModalOpen(false);
+        } else {
+          // User exists in Auth but not in Firestore
           setUser(null);
           setIsLoginModalOpen(true);
         }
-      } else {
+      } catch (error) {
+        console.error("Error during auth initialization:", error);
+        // Even if profile fetch fails, we should let the user see the login screen or an error
         setUser(null);
         setIsLoginModalOpen(true);
+      } finally {
+        console.log("Setting isAuthReady to true");
+        setIsAuthReady(true);
+        clearTimeout(timeoutId);
+        clearTimeout(forceLoginTimeoutId);
       }
-      setIsAuthReady(true);
     });
-    return () => unsubscribe();
+    
+    return () => {
+      unsubscribe();
+      clearTimeout(timeoutId);
+      clearTimeout(forceLoginTimeoutId);
+    };
   }, []);
 
   // Real-time Sync: User Status (to react to approval/blocking immediately)
@@ -356,7 +445,7 @@ export default function App() {
         setCashBalanceData(docSnap.data() as any);
       } else {
         // Initialize if not exists
-        const initial = generateInitialCashData(currentMonth);
+        const initial = generateInitialCashData(currentMonth, user.id);
         setDoc(docRef, initial).catch(e => handleFirestoreError(e, OperationType.CREATE, `cashBalanceData/${currentMonth}`));
         setCashBalanceData(initial);
       }
@@ -370,11 +459,11 @@ export default function App() {
     const docRef = doc(db, 'salaryState', currentMonth);
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
-        setSalaryState(docSnap.data() as SalaryState);
+        setSalaryState(desanitizeSalaryState(docSnap.data()));
       } else {
         // Initialize if not exists
-        const initial = generateInitialSalaryState(currentMonth);
-        setDoc(docRef, initial).catch(e => handleFirestoreError(e, OperationType.CREATE, `salaryState/${currentMonth}`));
+        const initial = generateInitialSalaryState(currentMonth, user.id);
+        setDoc(docRef, sanitizeForFirestore(initial)).catch(e => handleFirestoreError(e, OperationType.CREATE, `salaryState/${currentMonth}`));
         setSalaryState(initial);
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `salaryState/${currentMonth}`));
@@ -384,7 +473,11 @@ export default function App() {
   // Real-time Sync: Archives
   useEffect(() => {
     if (!isAuthReady || !user || !user.isApproved || user.isBlocked) return;
-    const q = query(collection(db, 'archives'), orderBy('month', 'desc'));
+    const q = query(
+      collection(db, 'archives'), 
+      where('uid', '==', user.id),
+      orderBy('month', 'desc')
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ ...doc.data() } as MonthlyArchive));
       setArchives(data);
@@ -410,6 +503,64 @@ export default function App() {
     localStorage.setItem('pyeobanjib-current-month', currentMonth);
   }, [currentMonth]);
 
+  // Recursive function to handle nested arrays for Firestore
+  const sanitizeForFirestore = (data: any): any => {
+    if (data === null || data === undefined) return data;
+    
+    if (Array.isArray(data)) {
+      // Check if it's a nested array (array of arrays)
+      if (data.some(item => Array.isArray(item))) {
+        return data.map(item => Array.isArray(item) ? JSON.stringify(item) : sanitizeForFirestore(item));
+      }
+      return data.map(item => sanitizeForFirestore(item));
+    }
+    
+    if (typeof data === 'object') {
+      const sanitized: any = {};
+      for (const key in data) {
+        sanitized[key] = sanitizeForFirestore(data[key]);
+      }
+      return sanitized;
+    }
+    
+    return data;
+  };
+
+  const desanitizeSalaryState = (ss: any): SalaryState => {
+    if (!ss) return ss;
+    const desanitized = JSON.parse(JSON.stringify(ss));
+    
+    // Handle partTimeDays
+    if (Array.isArray(desanitized.partTimeDays)) {
+      desanitized.partTimeDays = desanitized.partTimeDays.map((day: any) => {
+        if (typeof day === 'string') {
+          try {
+            return JSON.parse(day);
+          } catch (e) {
+            console.error("Error parsing partTimeDays day:", day, e);
+            return [];
+          }
+        }
+        return day;
+      });
+    }
+    // Handle dispatchDays
+    if (Array.isArray(desanitized.dispatchDays)) {
+      desanitized.dispatchDays = desanitized.dispatchDays.map((day: any) => {
+        if (typeof day === 'string') {
+          try {
+            return JSON.parse(day);
+          } catch (e) {
+            console.error("Error parsing dispatchDays day:", day, e);
+            return [];
+          }
+        }
+        return day;
+      });
+    }
+    return desanitized as SalaryState;
+  };
+
   // Wrapper for setCashBalanceData to sync with Firestore
   const updateCashBalanceData = async (newData: any) => {
     if (!user) return;
@@ -424,9 +575,68 @@ export default function App() {
   const updateSalaryState = async (newData: SalaryState) => {
     if (!user) return;
     try {
-      await setDoc(doc(db, 'salaryState', currentMonth), newData);
+      await setDoc(doc(db, 'salaryState', currentMonth), sanitizeForFirestore(newData));
     } catch (e) {
       handleFirestoreError(e, OperationType.UPDATE, `salaryState/${currentMonth}`);
+    }
+  };
+
+  const handleDownloadArchiveExcel = (archive: MonthlyArchive) => {
+    try {
+      const data = archive.data;
+      if (!data) {
+        alert("보관된 상세 데이터가 없습니다.");
+        return;
+      }
+
+      const workbook = XLSX.utils.book_new();
+
+      // 1. Summary Sheet
+      const summaryData = [
+        ["항목", "금액"],
+        ["총 매출액", archive.summary.totalSales],
+        ["매출원가", archive.summary.cogs],
+        ["인건비", archive.summary.labor],
+        ["영업이익", archive.summary.operatingProfit],
+        ["순이익", archive.summary.netProfit],
+        ["마감일", new Date(archive.timestamp).toLocaleString()]
+      ];
+      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(workbook, summarySheet, "요약");
+
+      // 2. Transactions Sheet
+      if (data.transactions && Array.isArray(data.transactions)) {
+        const expenseData = data.transactions.map((e: any) => ({
+          날짜: e.date,
+          카테고리: e.category,
+          항목명: e.name,
+          금액: e.amount,
+          상태: e.status === 'paid' ? '결제완료' : '미결제'
+        }));
+        const expenseSheet = XLSX.utils.json_to_sheet(expenseData);
+        XLSX.utils.book_append_sheet(workbook, expenseSheet, "지출내역");
+      }
+
+      // 3. Cash Balance Sheet
+      if (data.cashBalanceData && data.cashBalanceData.rows) {
+        const cashData = data.cashBalanceData.rows.map((r: any) => ({
+          일자: r.day,
+          요일: r.weekday,
+          전일시재: r.prevBalance,
+          입금: r.income,
+          이체: r.transferOut,
+          기타지출: r.otherExpense,
+          잔액: r.balance,
+          비고: r.remarks
+        }));
+        const cashSheet = XLSX.utils.json_to_sheet(cashData);
+        XLSX.utils.book_append_sheet(workbook, cashSheet, "현금시재");
+      }
+
+      XLSX.writeFile(workbook, `정산보고서_${archive.month.replace('.', '_')}.xlsx`);
+    } catch (error) {
+      console.error("Excel export error:", error);
+      alert("엑셀 파일 생성 중 오류가 발생했습니다.");
     }
   };
 
@@ -510,8 +720,8 @@ export default function App() {
   // Calculate derived data
   const salaryBreakdown = useMemo(() => {
     const employeesTotal = salaryState.employees.reduce((sum, e) => sum + e.totalSalary, 0);
-    const partTimeTotal = salaryState.partTimeDays.reduce((sum, day) => sum + day.reduce((a, b) => a + b.amount, 0), 0);
-    const dispatchTotal = salaryState.dispatchDays.reduce((sum, day) => sum + day.reduce((a, b) => a + b.amount, 0), 0);
+    const partTimeTotal = salaryState.partTimeDays.reduce((sum, day) => sum + (Array.isArray(day) ? day.reduce((a, b) => a + b.amount, 0) : 0), 0);
+    const dispatchTotal = salaryState.dispatchDays.reduce((sum, day) => sum + (Array.isArray(day) ? day.reduce((a, b) => a + b.amount, 0) : 0), 0);
     const insuranceTotal = salaryState.nationalHealth + salaryState.nationalPension + salaryState.employmentInsurance + salaryState.industrialAccidentInsurance;
     
     return {
@@ -859,40 +1069,68 @@ export default function App() {
   };
 
   const handleCloseMonth = () => {
+    console.log("Opening close month modal...");
     setIsClosingMonth(true);
   };
 
+  const desanitizeArchiveData = (archive: MonthlyArchive) => {
+    if (!archive || !archive.data) return archive;
+    
+    // Deep clone to avoid mutating the original archive state
+    const desanitized = JSON.parse(JSON.stringify(archive));
+    
+    if (desanitized.data.salaryState) {
+      desanitized.data.salaryState = desanitizeSalaryState(desanitized.data.salaryState);
+    }
+    return desanitized;
+  };
+
   const confirmCloseMonth = async () => {
-    if (!user) return;
+    if (!user || isClosingLoading) return;
+
+    console.log("Attempting to close month:", currentMonth);
+
+    // Check if the last day of the month is verified (Daily Close)
+    const lastRow = cashBalanceData.rows[cashBalanceData.rows.length - 1];
+    if (!lastRow?.isVerified) {
+      alert(`마지막 날짜(${lastRow?.day}일)의 '시재맞음(일일마감)' 버튼을 먼저 클릭해 주세요.`);
+      return;
+    }
+
+    setIsClosingLoading(true);
     try {
       const batch = writeBatch(db);
       
       // 1. Create Archive
       const archiveId = currentMonth;
       const archiveRef = doc(db, 'archives', archiveId);
+      
       const archiveData: MonthlyArchive = {
         id: archiveId,
+        uid: user.id,
         month: currentMonth.replace('-', '.'),
         summary: {
-          totalSales: currentSummary.totalSales,
-          netProfit: currentSummary.netProfit,
-          operatingProfit: currentSummary.operatingProfit,
-          cogs: currentSummary.cogs,
-          labor: currentSummary.labor,
-          rent: currentSummary.rent,
-          fixedCosts: currentSummary.fixedCosts,
-          variableCosts: currentSummary.variableCosts,
-          marketingCosts: currentSummary.marketingCosts,
-          taxes: currentSummary.taxes,
-          cardFees: currentSummary.cardFees,
+          totalSales: currentSummary.totalSales || 0,
+          netProfit: currentSummary.netProfit || 0,
+          operatingProfit: currentSummary.operatingProfit || 0,
+          cogs: currentSummary.cogs || 0,
+          labor: currentSummary.labor || 0,
+          rent: currentSummary.rent || 0,
+          fixedCosts: currentSummary.fixedCosts || 0,
+          variableCosts: currentSummary.variableCosts || 0,
+          marketingCosts: currentSummary.marketingCosts || 0,
+          taxes: currentSummary.taxes || 0,
+          cardFees: currentSummary.cardFees || 0,
         },
         timestamp: new Date().toISOString(),
-        data: {
+        data: sanitizeForFirestore({
           transactions,
           cashBalanceData,
           salaryState
-        }
+        })
       };
+      
+      console.log("Saving archive data...");
       batch.set(archiveRef, archiveData);
 
       // 2. Prepare next month
@@ -905,124 +1143,238 @@ export default function App() {
       }
       const nextMonthStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}`;
       
+      console.log("Preparing next month:", nextMonthStr);
+
       // Initialize next month's cash balance
       const nextCashRef = doc(db, 'cashBalanceData', nextMonthStr);
-      const nextCashData = generateInitialCashData(nextMonthStr);
-      nextCashData.carryover = cashBalanceData.finalBalance;
-      nextCashData.rows[0].prevBalance = cashBalanceData.finalBalance;
-      nextCashData.rows[0].balance = cashBalanceData.finalBalance;
-      nextCashData.finalBalance = cashBalanceData.finalBalance;
+      const nextCashData = generateInitialCashData(nextMonthStr, user.id);
+      
+      // Carry over final balance
+      const finalBalance = cashBalanceData.finalBalance || 0;
+      nextCashData.carryover = finalBalance;
+      if (nextCashData.rows && nextCashData.rows.length > 0) {
+        nextCashData.rows[0].prevBalance = finalBalance;
+        nextCashData.rows[0].balance = finalBalance;
+      }
+      nextCashData.finalBalance = finalBalance;
       batch.set(nextCashRef, nextCashData);
 
       // Initialize next month's salary state
       const nextSalaryRef = doc(db, 'salaryState', nextMonthStr);
-      const nextSalaryData = generateInitialSalaryState(nextMonthStr);
-      batch.set(nextSalaryRef, nextSalaryData);
+      const nextSalaryData = generateInitialSalaryState(nextMonthStr, user.id);
+      batch.set(nextSalaryRef, sanitizeForFirestore(nextSalaryData));
 
+      console.log("Committing batch...");
       await batch.commit();
+      console.log("Batch committed successfully!");
 
+      // Force update localStorage and state
+      localStorage.setItem('pyeobanjib-current-month', nextMonthStr);
       setCurrentMonth(nextMonthStr);
+      
+      // Close modal immediately after success
       setIsClosingMonth(false);
-      setActiveTab('archives');
+      
+      // Clear local states to force fresh start
+      setTransactions([]);
+      setCashBalanceData(nextCashData);
+      setSalaryState(nextSalaryData);
+
       alert(`${currentMonth.replace('-', '년 ')}월 마감이 완료되었습니다. ${nextMonthStr.replace('-', '년 ')}월 업무를 시작합니다.`);
     } catch (e) {
-      handleFirestoreError(e, OperationType.WRITE, 'batch/closeMonth');
+      console.error("Close month error details:", e);
+      alert(`마감 처리 중 오류가 발생했습니다: ${e instanceof Error ? e.message : String(e)}`);
+      // Close modal on error too so user can try again or fix issues
+      setIsClosingMonth(false);
+    } finally {
+      setIsClosingLoading(false);
     }
   };
 
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  const [resetError, setResetError] = useState<string | null>(null);
+
   const handleResetAllData = async () => {
     if (!user) return;
+    setResetError(null);
     try {
-      const batch = writeBatch(db);
+      setIsClosingLoading(true);
+      console.log("Starting full data reset...");
       
-      // Delete all transactions
-      const txDocs = await getDocs(collection(db, 'transactions'));
-      txDocs.forEach(d => batch.delete(d.ref));
+      const collectionsToDelete = ['transactions', 'cashBalanceData', 'salaryState'];
       
-      // Delete all cashBalanceData
-      const cbDocs = await getDocs(collection(db, 'cashBalanceData'));
-      cbDocs.forEach(d => batch.delete(d.ref));
+      for (const collName of collectionsToDelete) {
+        console.log(`Fetching documents from ${collName}...`);
+        const snapshot = await getDocs(collection(db, collName));
+        const docs = snapshot.docs;
+        console.log(`Found ${docs.length} documents in ${collName}`);
+        
+        // Delete in chunks of 500 (Firestore batch limit)
+        for (let i = 0; i < docs.length; i += 500) {
+          const batch = writeBatch(db);
+          const chunk = docs.slice(i, i + 500);
+          chunk.forEach(d => batch.delete(d.ref));
+          console.log(`Committing deletion batch for ${collName} (${i} to ${i + chunk.length})...`);
+          await batch.commit();
+        }
+      }
       
-      // Delete all salaryState
-      const ssDocs = await getDocs(collection(db, 'salaryState'));
-      ssDocs.forEach(d => batch.delete(d.ref));
+      // We no longer delete settings/global to preserve vendor list and other configs
+      // that might be relevant to the preserved archives.
       
-      // Delete all archives
-      const arDocs = await getDocs(collection(db, 'archives'));
-      arDocs.forEach(d => batch.delete(d.ref));
-      
-      // Delete settings
-      batch.delete(doc(db, 'settings', 'global'));
-
-      await batch.commit();
-
-      localStorage.clear();
+      console.log("Reset complete. Logging out and reloading...");
       setIsResetConfirmOpen(false);
-      window.location.reload();
-    } catch (e) {
-      handleFirestoreError(e, OperationType.WRITE, 'batch/resetAllData');
+      
+      // 1. Clear local storage for a clean state
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('pyeobanjib-')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      // 2. Reset local React state
+      setTransactions([]);
+      setCashBalanceData(generateInitialCashData(currentMonth, user.id));
+      setSalaryState(generateInitialSalaryState(currentMonth, user.id));
+      setArchives([]);
+      
+      // 3. Close modal and show success (no reload needed)
+      setIsResetConfirmOpen(false);
+      setIsClosingLoading(false);
+      alert("데이터가 성공적으로 초기화되었습니다.");
+      
+    } catch (e: any) {
+      console.error("Reset error:", e);
+      setResetError(e.message || "데이터 초기화 중 오류가 발생했습니다.");
+      setIsClosingLoading(false);
     }
   };
 
-  if (user?.isBlocked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-red-100 w-full max-w-md border border-red-100 text-center">
-          <div className="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mb-8 mx-auto">
-            <ShieldAlert className="w-10 h-10" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">계정이 차단되었습니다</h2>
-          <p className="text-gray-500 mb-8 leading-relaxed">
-            관리자에 의해 계정 이용이 제한되었습니다.<br />
-            문의사항은 관리자에게 연락해 주세요.
-          </p>
-          <button 
-            onClick={() => logout()}
-            className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all"
-          >
-            로그아웃
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (user && !user.isApproved && user.role !== '운영자') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-amber-100 w-full max-w-md border border-amber-100 text-center">
-          <div className="w-20 h-20 bg-amber-50 text-amber-600 rounded-3xl flex items-center justify-center mb-8 mx-auto">
-            <Clock className="w-10 h-10" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">승인 대기 중</h2>
-          <p className="text-gray-500 mb-8 leading-relaxed">
-            {user.name}님, 가입을 환영합니다!<br />
-            관리자의 승인이 완료된 후 서비스를 이용하실 수 있습니다. 잠시만 기다려 주세요.
-          </p>
-          <button 
-            onClick={() => logout()}
-            className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all"
-          >
-            로그아웃
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-[#F8F9FA] text-[#1A1C1E] font-sans selection:bg-emerald-100 pb-20">
-      {isLoginModalOpen ? (
-        <Login onLogin={(loggedInUser) => {
-          setUser(loggedInUser);
-          setIsLoginModalOpen(false);
-        }} />
+      {!isAuthReady ? (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+          <div className="flex flex-col items-center gap-6 max-w-sm w-full text-center">
+            <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-bold text-gray-700">데이터를 불러오는 중...</p>
+              <p className="text-xs text-gray-500">네트워크 상태에 따라 시간이 걸릴 수 있습니다.</p>
+            </div>
+            
+            {showForceLogin && (
+              <div className="flex flex-col gap-3 w-full mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <p className="text-xs text-red-500 font-medium">연결이 원활하지 않나요?</p>
+                <button 
+                  onClick={() => {
+                    setIsAuthReady(true);
+                    setIsLoginModalOpen(true);
+                  }}
+                  className="w-full py-3 px-4 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold shadow-sm hover:bg-gray-50 transition-all"
+                >
+                  로그인 화면으로 강제 이동
+                </button>
+                <button 
+                  onClick={async () => {
+                    try {
+                      const logoutPromise = logout();
+                      const timeoutPromise = new Promise(resolve => setTimeout(resolve, 2000));
+                      await Promise.race([logoutPromise, timeoutPromise]);
+                    } catch (e) {
+                      console.warn("Logout failed during force refresh:", e);
+                    }
+                    
+                    // Clear app specific localStorage
+                    const keysToRemove: string[] = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                      const key = localStorage.key(i);
+                      if (key && key.startsWith('pyeobanjib-')) {
+                        keysToRemove.push(key);
+                      }
+                    }
+                    keysToRemove.forEach(key => localStorage.removeItem(key));
+                    
+                    try {
+                      window.location.reload();
+                    } catch (e) {
+                      window.location.href = window.location.origin;
+                    }
+                  }}
+                  className="w-full py-3 px-4 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-all"
+                >
+                  캐시 삭제 후 새로고침
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : user?.isBlocked ? (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+          <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-red-100 w-full max-w-md border border-red-100 text-center">
+            <div className="w-20 h-20 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mb-8 mx-auto">
+              <ShieldAlert className="w-10 h-10" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">계정이 차단되었습니다</h2>
+            <p className="text-gray-500 mb-8 leading-relaxed">
+              관리자에 의해 계정 이용이 제한되었습니다.<br />
+              문의사항은 관리자에게 연락해 주세요.
+            </p>
+            <button 
+              onClick={() => logout()}
+              className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all"
+            >
+              로그아웃
+            </button>
+          </div>
+        </div>
+      ) : user && !user.isApproved && user.role !== '운영자' ? (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+          <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-amber-100 w-full max-w-md border border-amber-100 text-center">
+            <div className="w-20 h-20 bg-amber-50 text-amber-600 rounded-3xl flex items-center justify-center mb-8 mx-auto">
+              <Clock className="w-10 h-10" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">승인 대기 중</h2>
+            <p className="text-gray-500 mb-8 leading-relaxed">
+              {user.name}님, 가입을 환영합니다!<br />
+              관리자의 승인이 완료된 후 서비스를 이용하실 수 있습니다. 잠시만 기다려 주세요.
+            </p>
+            <button 
+              onClick={() => logout()}
+              className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all"
+            >
+              로그아웃
+            </button>
+          </div>
+        </div>
       ) : (
-        <>
+        <div className="min-h-screen bg-[#F8F9FA] text-[#1A1C1E] font-sans selection:bg-emerald-100 pb-20">
+          {isResetMode && resetCode ? (
+            <PasswordReset 
+              oobCode={resetCode} 
+              onComplete={() => {
+                setIsResetMode(false);
+                setResetCode(null);
+                window.history.replaceState({}, document.title, window.location.pathname);
+                setIsLoginModalOpen(true);
+              }}
+              onCancel={() => {
+                setIsResetMode(false);
+                setResetCode(null);
+                window.history.replaceState({}, document.title, window.location.pathname);
+                setIsLoginModalOpen(true);
+              }}
+            />
+          ) : (isLoginModalOpen || !user) ? (
+            <Login onLogin={(loggedInUser) => {
+              setUser(loggedInUser);
+              setIsLoginModalOpen(false);
+            }} />
+          ) : (
+            <>
           {/* Header */}
           <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 md:px-6 py-3 md:py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
@@ -1032,6 +1384,18 @@ export default function App() {
               <div className="flex items-center gap-2 mt-0.5 md:mt-1 text-[10px] md:text-sm text-gray-500">
                 <Calendar className="w-3 h-3 md:w-4 h-4" />
                 <span>{getPeriodString(currentMonth)}</span>
+                {(() => {
+                  const now = new Date();
+                  const realMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                  if (realMonth !== currentMonth) {
+                    return (
+                      <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-full animate-pulse">
+                        새로운 달이 시작되었습니다!
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             </div>
             
@@ -1072,26 +1436,6 @@ export default function App() {
               >
                 직원급여
               </button>
-              <button 
-                onClick={() => setActiveTab('archives')}
-                className={cn(
-                  "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
-                  activeTab === 'archives' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                보관함
-              </button>
-              {user?.role === '운영자' && (
-                <button 
-                  onClick={() => setActiveTab('users')}
-                  className={cn(
-                    "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
-                    activeTab === 'users' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                  )}
-                >
-                  사용자 관리
-                </button>
-              )}
             </nav>
           </div>
           <div className="flex items-center gap-2 md:gap-3">
@@ -1144,6 +1488,40 @@ export default function App() {
                         월 마감하기
                       </button>
 
+                      <div className="h-px bg-gray-50 my-1" />
+
+                      <button 
+                        onClick={() => {
+                          setIsSettingsOpen(false);
+                          setActiveTab('archives');
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold transition-colors",
+                          activeTab === 'archives' ? "bg-indigo-50 text-indigo-600" : "text-gray-600 hover:bg-gray-50"
+                        )}
+                      >
+                        <History className="w-4 h-4" />
+                        보관함
+                      </button>
+
+                      {user?.role === '운영자' && (
+                        <button 
+                          onClick={() => {
+                            setIsSettingsOpen(false);
+                            setActiveTab('users');
+                          }}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold transition-colors",
+                            activeTab === 'users' ? "bg-indigo-50 text-indigo-600" : "text-gray-600 hover:bg-gray-50"
+                          )}
+                        >
+                          <Users className="w-4 h-4" />
+                          사용자 관리
+                        </button>
+                      )}
+
+                      <div className="h-px bg-gray-50 my-1" />
+
                       <button 
                         onClick={() => {
                           setIsSettingsOpen(false);
@@ -1183,108 +1561,239 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
         {viewingArchive ? (
           <div className="space-y-6">
-            <div className="flex items-center justify-between bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center">
-                  <ArchiveIcon className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-indigo-900">{viewingArchive.month} 마감 데이터 조회 중</h2>
-                  <p className="text-xs text-indigo-600">현재 보고 있는 데이터는 읽기 전용입니다.</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setViewingArchive(null)}
-                className="px-4 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-xl text-sm font-bold hover:bg-indigo-50 transition-all"
-              >
-                조회 종료
-              </button>
-            </div>
-            
-            <nav className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl w-fit">
-              <button 
-                onClick={() => setActiveTab('cash')}
-                className={cn(
-                  "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
-                  activeTab === 'cash' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                현금시재
-              </button>
-              <button 
-                onClick={() => setActiveTab('pl')}
-                className={cn(
-                  "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
-                  activeTab === 'pl' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                손익계산서
-              </button>
-              <button 
-                onClick={() => setActiveTab('kpi')}
-                className={cn(
-                  "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
-                  activeTab === 'kpi' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                운영실적
-              </button>
-              <button 
-                onClick={() => setActiveTab('salary')}
-                className={cn(
-                  "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
-                  activeTab === 'salary' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                직원급여
-              </button>
-            </nav>
+            {(() => {
+              const desanitized = desanitizeArchiveData(viewingArchive);
+              return (
+                <>
+                  <div className="flex items-center justify-between bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center">
+                        <ArchiveIcon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-bold text-indigo-900">{desanitized.month} 마감 데이터 조회 중</h2>
+                        <p className="text-xs text-indigo-600">현재 보고 있는 데이터는 읽기 전용입니다.</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setViewingArchive(null)}
+                      className="px-4 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-xl text-sm font-bold hover:bg-indigo-50 transition-all"
+                    >
+                      조회 종료
+                    </button>
+                  </div>
+                  
+                  <nav className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl w-fit">
+                    <button 
+                      onClick={() => setActiveTab('cash')}
+                      className={cn(
+                        "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
+                        activeTab === 'cash' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                      )}
+                    >
+                      현금시재
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab('pl')}
+                      className={cn(
+                        "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
+                        activeTab === 'pl' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                      )}
+                    >
+                      손익계산서
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab('kpi')}
+                      className={cn(
+                        "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
+                        activeTab === 'kpi' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                      )}
+                    >
+                      운영실적
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab('salary')}
+                      className={cn(
+                        "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
+                        activeTab === 'salary' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                      )}
+                    >
+                      직원급여
+                    </button>
+                  </nav>
 
-            {activeTab === 'cash' ? (
-              <CashBalanceSheet data={viewingArchive.data.cashBalanceData} setData={() => {}} isReadOnly user={user} />
-            ) : activeTab === 'pl' ? (
-              <PLDashboard 
-                user={user}
-                currentMonth={viewingArchive.month.replace('.', '-')}
-                currentSummary={viewingArchive.summary}
-                currentExpenses={[]} // Simplified for archive view
-                salaryBreakdown={{
-                  employeesTotal: viewingArchive.data.salaryState.employees.reduce((sum: number, emp: any) => sum + emp.totalSalary, 0),
-                  partTimeTotal: viewingArchive.data.salaryState.partTimeDays.reduce((sum: number, day: any[]) => sum + day.reduce((dSum, r) => dSum + r.amount, 0), 0),
-                  dispatchTotal: viewingArchive.data.salaryState.dispatchDays.reduce((sum: number, day: any[]) => sum + day.reduce((dSum, r) => dSum + r.amount, 0), 0),
-                  insuranceTotal: viewingArchive.data.salaryState.nationalHealth + viewingArchive.data.salaryState.nationalPension + viewingArchive.data.salaryState.employmentInsurance + viewingArchive.data.salaryState.industrialAccidentInsurance,
-                  total: viewingArchive.summary.labor
-                }}
-                transactions={viewingArchive.data.transactions}
-                onDeleteTransaction={() => {}}
-                onEditTransaction={() => {}}
-                isModalOpen={false}
-                setIsModalOpen={() => {}}
-                newExpense={{ category: '', name: '', amount: '', date: '', status: 'unpaid' }}
-                setNewExpense={() => {}}
-                handleAddExpense={() => {}}
-                vendorList={{}}
-                isReadOnly
-                getBusinessDate={getBusinessDate}
-                isManualToday={isManualToday}
-                setIsManualToday={setIsManualToday}
-              />
-            ) : activeTab === 'kpi' ? (
-              <KPIDashboard 
-                currentSummary={viewingArchive.summary}
-                currentExpenses={[]}
-                archives={archives}
-                isReadOnly
-              />
-            ) : activeTab === 'salary' ? (
-              <SalaryDashboard 
-                user={user}
-                currentMonth={viewingArchive.month.replace('.', '-')}
-                salaryState={viewingArchive.data.salaryState}
-                setSalaryState={() => {}}
-                isReadOnly
-              />
-            ) : null}
+                  {(!desanitized || !desanitized.data) ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-gray-200">
+                      <p className="text-gray-500 font-bold">데이터를 불러올 수 없습니다.</p>
+                      <button 
+                        onClick={() => setViewingArchive(null)}
+                        className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold"
+                      >
+                        돌아가기
+                      </button>
+                    </div>
+                  ) : activeTab === 'cash' ? (
+                    <CashBalanceSheet data={desanitized.data.cashBalanceData} setData={() => {}} isReadOnly user={user} />
+                  ) : activeTab === 'pl' ? (
+                    <PLDashboard 
+                      user={user}
+                      currentMonth={desanitized.month.replace('.', '-')}
+                      currentSummary={desanitized.summary}
+                      currentExpenses={PL_DATA.expenses.map(cat => {
+                        if (cat.name === '인건비') {
+                          const employeesTotal = desanitized.data.salaryState.employees.reduce((sum: number, emp: any) => sum + emp.totalSalary, 0);
+                          const partTimeTotal = desanitized.data.salaryState.partTimeDays.reduce((sum: number, day: any) => {
+                            if (Array.isArray(day)) return sum + day.reduce((dSum: number, r: any) => dSum + r.amount, 0);
+                            return sum;
+                          }, 0);
+                          const dispatchTotal = desanitized.data.salaryState.dispatchDays.reduce((sum: number, day: any) => {
+                            if (Array.isArray(day)) return sum + day.reduce((dSum: number, r: any) => dSum + r.amount, 0);
+                            return sum;
+                          }, 0);
+                          const insuranceTotal = desanitized.data.salaryState.nationalHealth + desanitized.data.salaryState.nationalPension + desanitized.data.salaryState.employmentInsurance + desanitized.data.salaryState.industrialAccidentInsurance;
+                          
+                          return {
+                            ...cat,
+                            amount: employeesTotal + partTimeTotal + dispatchTotal + insuranceTotal,
+                            details: cat.details?.map(detail => {
+                              if (detail.name === '직원급여') return { ...detail, amount: employeesTotal };
+                              if (detail.name === '알바급여') return { ...detail, amount: partTimeTotal };
+                              if (detail.name === '파출급여') return { ...detail, amount: dispatchTotal };
+                              if (detail.name === '4대보험') return { ...detail, amount: insuranceTotal };
+                              return detail;
+                            })
+                          };
+                        }
+                        if (cat.name === '세금 예수금') {
+                          const vatAmount = desanitized.summary.totalSales * 0.05;
+                          const incomeTaxAmount = desanitized.summary.totalSales * 0.02;
+                          return {
+                            ...cat,
+                            amount: vatAmount + incomeTaxAmount,
+                            details: cat.details?.map(detail => {
+                              if (detail.name === '부가세 예수금') return { ...detail, amount: vatAmount };
+                              if (detail.name === '종소세 예수금') return { ...detail, amount: incomeTaxAmount };
+                              return detail;
+                            })
+                          };
+                        }
+                        const catTransactions = (desanitized.data.transactions || []).filter((t: any) => t.category === cat.name);
+                        let amount = catTransactions.reduce((sum: number, t: any) => sum + t.amount, 0);
+                        if (cat.name === '카드수수료(1.9%)') {
+                          const cardSales = (desanitized.data.transactions || []).filter((t: any) => t.category === '매출' && t.name === '카드').reduce((sum: number, t: any) => sum + t.amount, 0);
+                          amount = Math.max(amount, cardSales * 0.019);
+                        }
+                        return {
+                          ...cat,
+                          amount,
+                          details: cat.details?.map(detail => {
+                            const detailTransactions = catTransactions.filter((t: any) => t.name === detail.name);
+                            return { ...detail, amount: detailTransactions.reduce((sum: number, t: any) => sum + t.amount, 0) };
+                          })
+                        };
+                      })}
+                      salaryBreakdown={{
+                        employeesTotal: desanitized.data.salaryState.employees.reduce((sum: number, emp: any) => sum + emp.totalSalary, 0),
+                        partTimeTotal: desanitized.data.salaryState.partTimeDays.reduce((sum: number, day: any) => {
+                          if (Array.isArray(day)) {
+                            return sum + day.reduce((dSum: number, r: any) => dSum + r.amount, 0);
+                          }
+                          return sum;
+                        }, 0),
+                        dispatchTotal: desanitized.data.salaryState.dispatchDays.reduce((sum: number, day: any) => {
+                          if (Array.isArray(day)) {
+                            return sum + day.reduce((dSum: number, r: any) => dSum + r.amount, 0);
+                          }
+                          return sum;
+                        }, 0),
+                        insuranceTotal: desanitized.data.salaryState.nationalHealth + desanitized.data.salaryState.nationalPension + desanitized.data.salaryState.employmentInsurance + desanitized.data.salaryState.industrialAccidentInsurance,
+                        total: desanitized.summary.labor
+                      }}
+                      transactions={desanitized.data.transactions}
+                      onDeleteTransaction={() => {}}
+                      onEditTransaction={() => {}}
+                      isModalOpen={false}
+                      setIsModalOpen={() => {}}
+                      newExpense={{ category: '', name: '', amount: '', date: '', status: 'unpaid' }}
+                      setNewExpense={() => {}}
+                      handleAddExpense={() => {}}
+                      vendorList={{}}
+                      isReadOnly
+                      getBusinessDate={getBusinessDate}
+                      isManualToday={isManualToday}
+                      setIsManualToday={setIsManualToday}
+                    />
+                  ) : activeTab === 'kpi' ? (
+                    <KPIDashboard 
+                      currentSummary={desanitized.summary}
+                      currentExpenses={PL_DATA.expenses.map(cat => {
+                        if (cat.name === '인건비') {
+                          const employeesTotal = desanitized.data.salaryState.employees.reduce((sum: number, emp: any) => sum + emp.totalSalary, 0);
+                          const partTimeTotal = desanitized.data.salaryState.partTimeDays.reduce((sum: number, day: any) => {
+                            if (Array.isArray(day)) return sum + day.reduce((dSum: number, r: any) => dSum + r.amount, 0);
+                            return sum;
+                          }, 0);
+                          const dispatchTotal = desanitized.data.salaryState.dispatchDays.reduce((sum: number, day: any) => {
+                            if (Array.isArray(day)) return sum + day.reduce((dSum: number, r: any) => dSum + r.amount, 0);
+                            return sum;
+                          }, 0);
+                          const insuranceTotal = desanitized.data.salaryState.nationalHealth + desanitized.data.salaryState.nationalPension + desanitized.data.salaryState.employmentInsurance + desanitized.data.salaryState.industrialAccidentInsurance;
+                          
+                          return {
+                            ...cat,
+                            amount: employeesTotal + partTimeTotal + dispatchTotal + insuranceTotal,
+                            details: cat.details?.map(detail => {
+                              if (detail.name === '직원급여') return { ...detail, amount: employeesTotal };
+                              if (detail.name === '알바급여') return { ...detail, amount: partTimeTotal };
+                              if (detail.name === '파출급여') return { ...detail, amount: dispatchTotal };
+                              if (detail.name === '4대보험') return { ...detail, amount: insuranceTotal };
+                              return detail;
+                            })
+                          };
+                        }
+                        if (cat.name === '세금 예수금') {
+                          const vatAmount = desanitized.summary.totalSales * 0.05;
+                          const incomeTaxAmount = desanitized.summary.totalSales * 0.02;
+                          return {
+                            ...cat,
+                            amount: vatAmount + incomeTaxAmount,
+                            details: cat.details?.map(detail => {
+                              if (detail.name === '부가세 예수금') return { ...detail, amount: vatAmount };
+                              if (detail.name === '종소세 예수금') return { ...detail, amount: incomeTaxAmount };
+                              return detail;
+                            })
+                          };
+                        }
+                        const catTransactions = (desanitized.data.transactions || []).filter((t: any) => t.category === cat.name);
+                        let amount = catTransactions.reduce((sum: number, t: any) => sum + t.amount, 0);
+                        if (cat.name === '카드수수료(1.9%)') {
+                          const cardSales = (desanitized.data.transactions || []).filter((t: any) => t.category === '매출' && t.name === '카드').reduce((sum: number, t: any) => sum + t.amount, 0);
+                          amount = Math.max(amount, cardSales * 0.019);
+                        }
+                        return {
+                          ...cat,
+                          amount,
+                          details: cat.details?.map(detail => {
+                            const detailTransactions = catTransactions.filter((t: any) => t.name === detail.name);
+                            return { ...detail, amount: detailTransactions.reduce((sum: number, t: any) => sum + t.amount, 0) };
+                          })
+                        };
+                      })}
+                      archives={archives}
+                      isReadOnly
+                    />
+                  ) : activeTab === 'salary' ? (
+                    <SalaryDashboard 
+                      user={user}
+                      currentMonth={desanitized.month.replace('.', '-')}
+                      salaryState={desanitized.data.salaryState}
+                      setSalaryState={() => {}}
+                      isReadOnly
+                    />
+                  ) : null}
+                </>
+              );
+            })()}
           </div>
         ) : activeTab === 'cash' ? (
           <CashBalanceSheet data={cashBalanceData} setData={setCashBalanceData} user={user} />
@@ -1333,6 +1842,7 @@ export default function App() {
               setViewingArchive(archive);
               setActiveTab('pl');
             }} 
+            onDownloadExcel={handleDownloadArchiveExcel}
           />
         )}
       </main>
@@ -1366,16 +1876,27 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4">
                 <button 
                   onClick={() => setIsResetConfirmOpen(false)}
-                  className="px-6 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold hover:bg-gray-200 active:scale-95 transition-all"
+                  disabled={isClosingLoading}
+                  className="px-6 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-50"
                 >
                   취소
                 </button>
                 <button 
                   onClick={handleResetAllData}
-                  className="px-6 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 active:scale-95 shadow-lg shadow-red-200 transition-all flex items-center justify-center gap-2"
+                  disabled={isClosingLoading}
+                  className="px-6 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 active:scale-95 shadow-lg shadow-red-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <Trash2 className="w-5 h-5" />
-                  초기화하기
+                  {isClosingLoading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      처리 중...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-5 h-5" />
+                      초기화하기
+                    </>
+                  )}
                 </button>
               </div>
             </motion.div>
@@ -1397,22 +1918,48 @@ export default function App() {
                 <Lock className="w-8 h-8" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 text-center mb-2">이번 달 정산을 마감하시겠습니까?</h3>
-              <p className="text-sm text-gray-500 text-center mb-8">
+              <p className="text-sm text-gray-500 text-center mb-4">
                 마감된 데이터는 보관함으로 이동하며,<br />
                 현재 작업 중인 데이터는 초기화됩니다.
               </p>
+
+              {/* Daily Close Check Warning */}
+              {(() => {
+                const lastRow = cashBalanceData.rows[cashBalanceData.rows.length - 1];
+                if (!lastRow?.isVerified) {
+                  return (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+                      <p className="text-xs text-amber-800 font-bold text-center leading-relaxed">
+                        ⚠️ 마지막 날짜({lastRow?.day}일)의 '시재맞음(일일마감)'<br />
+                        버튼을 먼저 클릭해야 마감할 수 있습니다.
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               <div className="flex gap-3">
                 <button 
                   onClick={() => setIsClosingMonth(false)}
-                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-all"
+                  disabled={isClosingLoading}
+                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-all disabled:opacity-50"
                 >
                   취소
                 </button>
                 <button 
                   onClick={confirmCloseMonth}
-                  className="flex-1 px-4 py-3 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 shadow-lg shadow-rose-200 transition-all"
+                  disabled={isClosingLoading}
+                  className="flex-1 px-4 py-3 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 shadow-lg shadow-rose-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  마감하기
+                  {isClosingLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      처리 중...
+                    </>
+                  ) : (
+                    '마감하기'
+                  )}
                 </button>
               </div>
             </motion.div>
@@ -1462,29 +2009,6 @@ export default function App() {
           <Users className={cn("w-6 h-6", activeTab === 'salary' ? "fill-emerald-50" : "")} />
           <span className="text-[10px] font-bold">직원급여</span>
         </button>
-        <button 
-          onClick={() => setActiveTab('archives')}
-          className={cn(
-            "flex flex-col items-center gap-1 transition-all",
-            activeTab === 'archives' ? "text-emerald-600" : "text-gray-400"
-          )}
-        >
-          <ArchiveIcon className={cn("w-6 h-6", activeTab === 'archives' ? "fill-emerald-50" : "")} />
-          <span className="text-[10px] font-bold">보관함</span>
-        </button>
-
-        {user?.role === '운영자' && (
-          <button 
-            onClick={() => setActiveTab('users')}
-            className={cn(
-              "flex flex-col items-center gap-1 transition-all",
-              activeTab === 'users' ? "text-emerald-600" : "text-gray-400"
-            )}
-          >
-            <Users className={cn("w-6 h-6", activeTab === 'users' ? "fill-emerald-50" : "")} />
-            <span className="text-[10px] font-bold">사용자</span>
-          </button>
-        )}
       </div>
 
       {/* Footer */}
@@ -1502,6 +2026,7 @@ export default function App() {
       </>
       )}
     </div>
+    )}
     </ErrorBoundary>
   );
 }

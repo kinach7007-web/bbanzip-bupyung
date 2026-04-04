@@ -125,7 +125,7 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
   
   const handleVerify = (idx: number) => {
     const newRows = [...data.rows];
-    newRows[idx] = { ...newRows[idx], isVerified: true, remarks: '' };
+    newRows[idx] = { ...newRows[idx], isVerified: true };
     setData(prev => ({ ...prev, rows: newRows }));
   };
 
@@ -258,7 +258,7 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
                           {row.otherExpense > 0 ? formatCurrency(row.otherExpense).replace('₩', '') : row.otherExpense < 0 ? `+${formatCurrency(Math.abs(row.otherExpense)).replace('₩', '')}` : '-'}
                         </span>
                         {!isReadOnly && (
-                          <button onClick={() => handleEditClick(idx)} className="p-1 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded opacity-0 group-hover:opacity-100 transition-all">
+                          <button onClick={() => handleEditClick(idx)} className="p-1 text-amber-500 hover:bg-amber-50 rounded opacity-0 group-hover:opacity-100 transition-all">
                             <Edit2 className="w-3 h-3" />
                           </button>
                         )}
@@ -287,8 +287,22 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
                     ) : (
                       <div className="flex items-center justify-center min-h-[32px] relative group">
                         {row.isVerified ? (
-                          <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-bold border border-emerald-100">
-                            <Check className="w-3.5 h-3.5" /> 시재확인
+                          <div className="flex items-center justify-between w-full gap-2">
+                            <div className="flex-1 truncate group-hover:whitespace-normal group-hover:overflow-visible text-gray-700 font-medium flex items-center gap-2">
+                              <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-bold border border-emerald-100 shrink-0">
+                                <Check className="w-3.5 h-3.5" /> 시재확인
+                              </div>
+                              <span className="truncate">{row.remarks}</span>
+                              {row.author && <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-md shrink-0">{row.author}</span>}
+                            </div>
+                            {!isReadOnly && (
+                              <button 
+                                onClick={() => handleEditClick(idx)} 
+                                className="p-1 text-amber-500 hover:bg-amber-50 rounded opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <div className="flex items-center justify-between w-full gap-2">
@@ -297,22 +311,22 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
                               {row.author && <span className="ml-2 text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-md">{row.author}</span>}
                             </div>
                             {!isReadOnly && (
-                              <button 
-                                onClick={() => handleVerify(idx)}
-                                className="px-2 py-1 bg-blue-600 text-white rounded text-[10px] font-bold hover:bg-blue-700 transition-colors shadow-sm shrink-0"
-                              >
-                                시재맞음
-                              </button>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button 
+                                  onClick={() => handleEditClick(idx)} 
+                                  className="p-1 text-amber-500 hover:bg-amber-50 rounded opacity-0 group-hover:opacity-100 transition-all"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button 
+                                  onClick={() => handleVerify(idx)}
+                                  className="px-2 py-1 bg-blue-600 text-white rounded text-[10px] font-bold hover:bg-blue-700 transition-colors shadow-sm"
+                                >
+                                  시재맞음
+                                </button>
+                              </div>
                             )}
                           </div>
-                        )}
-                        {!isReadOnly && (
-                          <button 
-                            onClick={() => handleEditClick(idx)} 
-                            className="absolute right-0 p-1 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded opacity-0 group-hover:opacity-100 transition-all"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </button>
                         )}
                       </div>
                     )}

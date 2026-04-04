@@ -40,6 +40,8 @@ export interface DispatchWorker {
 }
 
 export interface SalaryState {
+  month: string;
+  uid: string;
   employees: Employee[];
   partTimeWorkers: PartTimeWorker[];
   partTimeDays: PartTimeRecord[][];
@@ -53,6 +55,7 @@ export interface SalaryState {
 
 export interface MonthlyArchive {
   id: string;
+  uid: string;
   month: string;
   summary: {
     totalSales: number;

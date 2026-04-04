@@ -6,14 +6,19 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  confirmPasswordReset,
+  verifyPasswordResetCode,
+  setPersistence,
+  browserLocalPersistence,
+  inMemoryPersistence,
   type User as FirebaseUser 
 } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, getDocFromServer, writeBatch } from 'firebase/firestore';
+import { initializeFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, getDocFromServer, writeBatch, terminate } from 'firebase/firestore';
 import firebaseConfig from './firebase-applet-config.json';
 
 // Initialize Firebase SDK
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = initializeFirestore(app, {}, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth();
 
 // Auth helpers
@@ -86,6 +91,6 @@ async function testConnection() {
 testConnection();
 
 export { 
-  collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, writeBatch,
-  onAuthStateChanged, type FirebaseUser, sendPasswordResetEmail
+  collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, writeBatch, terminate, getDocFromServer,
+  onAuthStateChanged, type FirebaseUser, sendPasswordResetEmail, confirmPasswordReset, verifyPasswordResetCode
 };
