@@ -372,11 +372,11 @@ export function PLDashboard({
           )}
         </div>
         <div className="overflow-auto custom-scrollbar rounded-b-2xl md:rounded-b-3xl max-h-[calc(100vh-280px)]">
-          <table className="w-full text-left border-collapse min-w-[3000px] relative">
+          <table className="w-full text-left border-collapse min-w-max relative">
             <thead>
               <tr className="bg-gray-50/80">
-                <th className="sticky top-0 left-0 z-30 bg-gray-100 px-3 md:px-4 py-3 text-[9px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest border-r border-gray-200 min-w-[140px] md:min-w-[200px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">계정</th>
-                <th className="sticky top-0 left-[140px] md:left-[200px] z-30 bg-gray-100 px-3 md:px-4 py-3 text-[9px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right border-r border-gray-200 min-w-[100px] md:min-w-[120px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">금액</th>
+                <th className="sticky top-0 left-0 z-30 bg-gray-100 px-1.5 md:px-4 py-2 md:py-3 text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest border-r border-gray-200 min-w-[90px] md:min-w-[200px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">계정</th>
+                <th className="sticky top-0 left-[90px] md:left-[200px] z-30 bg-gray-100 px-1.5 md:px-4 py-2 md:py-3 text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right border-r border-gray-200 min-w-[70px] md:min-w-[120px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">금액</th>
                 <th className="hidden md:table-cell sticky top-0 left-[320px] z-30 bg-gray-100 px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right border-r border-gray-200 min-w-[80px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">비율</th>
                 {days.map(day => {
                   const [yearStr, monthStr] = currentMonth.split('-');
@@ -385,8 +385,8 @@ export function PLDashboard({
                   const date = new Date(year, month - 1, day);
                   const dayName = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
                   return (
-                    <th key={day} className="sticky top-0 z-20 bg-gray-50 px-3 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center border-r border-gray-100 min-w-[100px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">
-                      {day}일({dayName})
+                    <th key={day} className="sticky top-0 z-20 bg-gray-50 px-1 md:px-3 py-2 md:py-3 text-[8px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center border-r border-gray-100 min-w-[45px] md:min-w-[100px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">
+                      {day}일<span className="hidden md:inline">({dayName})</span>
                     </th>
                   );
                 })}
@@ -403,17 +403,17 @@ export function PLDashboard({
                   )}
                 >
                   <td className={cn(
-                    "sticky left-0 z-10 px-3 md:px-4 py-3 text-[11px] md:text-xs border-r border-gray-200",
+                    "sticky left-0 z-10 px-1.5 md:px-4 py-2 md:py-3 text-[9px] md:text-xs border-r border-gray-200",
                     row.isHeader ? "bg-gray-100 text-gray-900" : "bg-white group-hover:bg-gray-50 text-gray-600",
                     row.id === '7' && "bg-gray-100 text-gray-900 font-bold",
                     (row.category.includes('[육류 및 육수 재료]') || row.category.includes('[식자재&공산품 소계]')) && "bg-amber-100/80",
-                    row.level === 1 && "pl-6 md:pl-8",
-                    row.level === 2 && "pl-10 md:pl-12"
+                    row.level === 1 && "pl-3 md:pl-8",
+                    row.level === 2 && "pl-5 md:pl-12"
                   )}>
                     {row.category}
                   </td>
                   <td className={cn(
-                    "sticky left-[140px] md:left-[200px] z-10 px-3 md:px-4 py-3 text-[11px] md:text-xs font-mono text-right border-r border-gray-200",
+                    "sticky left-[90px] md:left-[200px] z-10 px-1.5 md:px-4 py-2 md:py-3 text-[9px] md:text-xs font-mono text-right border-r border-gray-200 whitespace-nowrap",
                     row.isHeader ? "bg-gray-100 text-gray-900" : "bg-white group-hover:bg-gray-50 text-gray-700",
                     row.id === '7' && "bg-gray-100 text-gray-900 font-bold",
                     (row.category.includes('[육류 및 육수 재료]') || row.category.includes('[식자재&공산품 소계]')) && "bg-amber-100/80"
@@ -431,7 +431,7 @@ export function PLDashboard({
                   {row.daily.map((val, idx) => {
                     // 인건비 항목(4-1, 4-2, 4-3)은 일별 입력란을 숨김
                     if (['4-1', '4-2', '4-3'].includes(row.id)) {
-                      return <td key={idx} className="px-3 py-3 border-r border-gray-50 bg-gray-50/50"></td>;
+                      return <td key={idx} className="px-1 md:px-3 py-2 md:py-3 border-r border-gray-50 bg-gray-50/50"></td>;
                     }
                     return (
                       <td 
@@ -442,7 +442,7 @@ export function PLDashboard({
                           setSelectedCell({ row, day });
                         }}
                         className={cn(
-                          "px-3 py-3 text-xs font-mono text-right border-r border-gray-50 text-gray-600 transition-colors",
+                          "px-1 md:px-3 py-2 md:py-3 text-[9px] md:text-xs font-mono text-right border-r border-gray-50 text-gray-600 transition-colors",
                           !row.isHeader && !row.isSubtotal && "cursor-pointer hover:bg-emerald-50/50",
                           (() => {
                             const cellTransactions = getCellTransactions(row, idx + 1);

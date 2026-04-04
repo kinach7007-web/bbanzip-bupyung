@@ -226,12 +226,12 @@ export function KPIDashboard({ currentSummary, currentExpenses, archives = [], i
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-indigo-50/40">
-                  <th className="px-6 py-4 text-[10px] font-bold text-indigo-400 uppercase tracking-widest">항목</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-indigo-400 uppercase tracking-widest">세부항목</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-indigo-400 uppercase tracking-widest text-right">사용누계금액</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-indigo-400 uppercase tracking-widest text-right">현재 비율</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-indigo-400 uppercase tracking-widest text-right">전달 비율</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-indigo-400 uppercase tracking-widest text-right">연간 비율</th>
+                  <th className="px-3 md:px-6 py-3 md:py-4 text-[8px] md:text-[10px] font-bold text-indigo-400 uppercase tracking-widest whitespace-nowrap">항목</th>
+                  <th className="px-3 md:px-6 py-3 md:py-4 text-[8px] md:text-[10px] font-bold text-indigo-400 uppercase tracking-widest whitespace-nowrap">세부항목</th>
+                  <th className="px-3 md:px-6 py-3 md:py-4 text-[8px] md:text-[10px] font-bold text-indigo-400 uppercase tracking-widest text-right whitespace-nowrap">사용누계금액</th>
+                  <th className="px-3 md:px-6 py-3 md:py-4 text-[8px] md:text-[10px] font-bold text-indigo-400 uppercase tracking-widest text-right whitespace-nowrap">현재 비율</th>
+                  <th className="px-3 md:px-6 py-3 md:py-4 text-[8px] md:text-[10px] font-bold text-indigo-400 uppercase tracking-widest text-right whitespace-nowrap">전달 비율</th>
+                  <th className="px-3 md:px-6 py-3 md:py-4 text-[8px] md:text-[10px] font-bold text-indigo-400 uppercase tracking-widest text-right whitespace-nowrap">연간 비율</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -245,24 +245,24 @@ export function KPIDashboard({ currentSummary, currentExpenses, archives = [], i
                     )}
                   >
                     <td className={cn(
-                      "px-6 py-4 text-sm font-bold text-gray-900",
-                      row.level > 0 && "pl-10 font-medium text-gray-600"
+                      "px-3 md:px-6 py-3 md:py-4 text-[10px] md:text-sm font-bold text-gray-900 whitespace-nowrap",
+                      row.level > 0 && "pl-6 md:pl-10 font-medium text-gray-600"
                     )}>
                       {row.item}
                     </td>
-                    <td className="px-6 py-4 text-xs font-medium text-gray-500">
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-[9px] md:text-xs font-medium text-gray-500 whitespace-nowrap">
                       {row.subItem}
                     </td>
-                    <td className="px-6 py-4 text-sm font-bold text-right text-gray-900">
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-[10px] md:text-sm font-bold text-right text-gray-900 whitespace-nowrap">
                       {formatCurrency(row.actualAmount)}
                     </td>
-                    <td className="px-6 py-4 text-sm font-bold text-right text-emerald-600">
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-[10px] md:text-sm font-bold text-right text-emerald-600 whitespace-nowrap">
                       {row.actualRatio}%
                     </td>
-                    <td className="px-6 py-4 text-sm font-bold text-right text-pink-500">
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-[10px] md:text-sm font-bold text-right text-pink-500 whitespace-nowrap">
                       {row.prevRatio > 0 ? `${row.prevRatio}%` : '-'}
                     </td>
-                    <td className="px-6 py-4 text-sm font-bold text-right text-blue-500">
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-[10px] md:text-sm font-bold text-right text-blue-500 whitespace-nowrap">
                       {row.annualRatio > 0 ? `${row.annualRatio}%` : '-'}
                     </td>
                   </tr>

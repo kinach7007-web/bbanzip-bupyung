@@ -293,90 +293,90 @@ export function SalaryDashboard({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead className="text-xs text-gray-700 bg-gray-50 border-b border-gray-200">
+          <table className="w-full text-[10px] md:text-sm text-left whitespace-nowrap">
+            <thead className="text-[9px] md:text-xs text-gray-700 bg-gray-50 border-b border-gray-200">
               <tr>
-                <th rowSpan={2} className="px-3 py-3 font-semibold text-center border-r border-gray-200 sticky left-0 bg-gray-50 z-10">성명</th>
-                <th rowSpan={2} className="px-3 py-3 font-semibold text-center border-r border-gray-200">직급</th>
-                <th colSpan={3} className="px-3 py-2 font-semibold text-center border-r border-gray-200 border-b border-gray-200">지급내용</th>
-                <th rowSpan={2} className="px-3 py-3 font-semibold text-center border-r border-gray-200">급여</th>
-                <th rowSpan={2} className="px-3 py-3 font-semibold text-center border-l border-gray-200">비고</th>
-                {!isReadOnly && <th rowSpan={2} className="px-3 py-3 font-semibold text-center">관리</th>}
+                <th rowSpan={2} className="px-1 md:px-3 py-2 md:py-3 font-semibold text-center border-r border-gray-200 sticky left-0 bg-gray-50 z-10">성명</th>
+                <th rowSpan={2} className="px-1 md:px-3 py-2 md:py-3 font-semibold text-center border-r border-gray-200">직급</th>
+                <th colSpan={3} className="px-1 md:px-3 py-1 md:py-2 font-semibold text-center border-r border-gray-200 border-b border-gray-200">지급내용</th>
+                <th rowSpan={2} className="px-1 md:px-3 py-2 md:py-3 font-semibold text-center border-r border-gray-200">급여</th>
+                <th rowSpan={2} className="px-1 md:px-3 py-2 md:py-3 font-semibold text-center border-l border-gray-200">비고</th>
+                {!isReadOnly && <th rowSpan={2} className="px-1 md:px-3 py-2 md:py-3 font-semibold text-center">관리</th>}
               </tr>
               <tr>
-                <th className="px-3 py-1 font-semibold text-center border-r border-gray-200">월급</th>
-                <th className="px-3 py-1 font-semibold text-center border-r border-gray-200">일당</th>
-                <th className="px-3 py-1 font-semibold text-center border-r border-gray-200">근무일수</th>
+                <th className="px-1 md:px-3 py-1 font-semibold text-center border-r border-gray-200">월급</th>
+                <th className="px-1 md:px-3 py-1 font-semibold text-center border-r border-gray-200">일당</th>
+                <th className="px-1 md:px-3 py-1 font-semibold text-center border-r border-gray-200">근무일수</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {employees.map((emp) => (
                 <tr key={emp.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-2 py-2 border-r border-gray-200 sticky left-0 bg-white z-10">
+                  <td className="px-1 md:px-2 py-1 md:py-2 border-r border-gray-200 sticky left-0 bg-white z-10">
                     <input
                       type="text"
                       value={emp.name}
                       onChange={(e) => handleEmployeeChange(emp.id, 'name', e.target.value)}
                       disabled={isReadOnly}
                       className={cn(
-                        "w-20 px-2 py-1 text-center border border-transparent rounded outline-none transition-colors",
+                        "w-12 md:w-20 px-1 md:px-2 py-1 text-center border border-transparent rounded outline-none transition-colors text-[10px] md:text-sm",
                         !isReadOnly && "hover:border-gray-300 focus:border-emerald-500",
                         isReadOnly && "bg-transparent cursor-default"
                       )}
                       placeholder="이름"
                     />
                   </td>
-                  <td className="px-2 py-2 border-r border-gray-200">
+                  <td className="px-1 md:px-2 py-1 md:py-2 border-r border-gray-200">
                     <input
                       type="text"
                       value={emp.position}
                       onChange={(e) => handleEmployeeChange(emp.id, 'position', e.target.value)}
                       disabled={isReadOnly}
                       className={cn(
-                        "w-16 px-2 py-1 text-center border border-transparent rounded outline-none transition-colors",
+                        "w-10 md:w-16 px-1 md:px-2 py-1 text-center border border-transparent rounded outline-none transition-colors text-[10px] md:text-sm",
                         !isReadOnly && "hover:border-gray-300 focus:border-emerald-500",
                         isReadOnly && "bg-transparent cursor-default"
                       )}
                       placeholder="직급"
                     />
                   </td>
-                  <td className="px-2 py-2 border-r border-gray-200">
+                  <td className="px-1 md:px-2 py-1 md:py-2 border-r border-gray-200">
                     <input
                       type="text"
                       value={emp.monthlySalary === 0 ? '' : emp.monthlySalary.toLocaleString()}
                       onChange={(e) => handleEmployeeChange(emp.id, 'monthlySalary', Number(e.target.value.replace(/,/g, '')))}
                       disabled={isReadOnly}
                       className={cn(
-                        "w-24 px-2 py-1 text-right border border-transparent rounded outline-none transition-colors",
+                        "w-16 md:w-24 px-1 md:px-2 py-1 text-right border border-transparent rounded outline-none transition-colors text-[10px] md:text-sm",
                         !isReadOnly && "hover:border-gray-300 focus:border-emerald-500",
                         isReadOnly && "bg-transparent cursor-default"
                       )}
                       placeholder="0"
                     />
                   </td>
-                  <td className="px-2 py-2 border-r border-gray-200">
+                  <td className="px-1 md:px-2 py-1 md:py-2 border-r border-gray-200">
                     <input
                       type="text"
                       value={emp.dailyWage === 0 ? '' : emp.dailyWage.toLocaleString()}
                       onChange={(e) => handleEmployeeChange(emp.id, 'dailyWage', Number(e.target.value.replace(/,/g, '')))}
                       disabled={isReadOnly}
                       className={cn(
-                        "w-20 px-2 py-1 text-right border border-transparent rounded outline-none transition-colors",
+                        "w-14 md:w-20 px-1 md:px-2 py-1 text-right border border-transparent rounded outline-none transition-colors text-[10px] md:text-sm",
                         !isReadOnly && "hover:border-gray-300 focus:border-emerald-500",
                         isReadOnly && "bg-transparent cursor-default"
                       )}
                       placeholder="0"
                     />
                   </td>
-                  <td className="px-2 py-2 border-r border-gray-200 text-center">
-                    <div className="flex items-center justify-center gap-1.5">
+                  <td className="px-1 md:px-2 py-1 md:py-2 border-r border-gray-200 text-center">
+                    <div className="flex items-center justify-center gap-1 md:gap-1.5">
                       {!isReadOnly && (
-                        <label className="flex items-center gap-1 text-[10px] text-gray-500 cursor-pointer bg-gray-50 px-1.5 py-1 rounded border border-gray-200 hover:bg-gray-100 transition-colors" title="오늘 날짜 기준으로 자동 계산">
+                        <label className="flex items-center gap-0.5 md:gap-1 text-[8px] md:text-[10px] text-gray-500 cursor-pointer bg-gray-50 px-1 md:px-1.5 py-0.5 md:py-1 rounded border border-gray-200 hover:bg-gray-100 transition-colors" title="오늘 날짜 기준으로 자동 계산">
                           <input
                             type="checkbox"
                             checked={emp.isAutoWorkDays}
                             onChange={(e) => handleEmployeeChange(emp.id, 'isAutoWorkDays', e.target.checked)}
-                            className="w-3 h-3 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer"
+                            className="w-2.5 h-2.5 md:w-3 md:h-3 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer"
                           />
                           자동
                         </label>
@@ -387,7 +387,7 @@ export function SalaryDashboard({
                         onChange={(e) => handleEmployeeChange(emp.id, 'totalWorkDays', Number(e.target.value))}
                         disabled={emp.isAutoWorkDays || isReadOnly}
                         className={cn(
-                          "w-14 px-2 py-1 text-center border rounded outline-none transition-colors font-medium",
+                          "w-10 md:w-14 px-1 md:px-2 py-1 text-center border rounded outline-none transition-colors font-medium text-[10px] md:text-sm",
                           (emp.isAutoWorkDays || isReadOnly)
                             ? 'bg-gray-100 text-gray-500 border-transparent cursor-not-allowed' 
                             : 'bg-white text-gray-900 border-gray-300 hover:border-gray-400 focus:border-emerald-500'
@@ -396,17 +396,17 @@ export function SalaryDashboard({
                       />
                     </div>
                   </td>
-                  <td className="px-2 py-2 border-r border-gray-200 text-right font-bold text-gray-900 bg-gray-50/50">
+                  <td className="px-1 md:px-2 py-1 md:py-2 border-r border-gray-200 text-right font-bold text-gray-900 bg-gray-50/50 text-[10px] md:text-sm">
                     {formatCurrency(emp.totalSalary)}
                   </td>
-                  <td className="px-2 py-2 border-l border-gray-200">
+                  <td className="px-1 md:px-2 py-1 md:py-2 border-l border-gray-200">
                     <input
                       type="text"
                       value={emp.note}
                       onChange={(e) => handleEmployeeChange(emp.id, 'note', e.target.value)}
                       disabled={isReadOnly}
                       className={cn(
-                        "w-32 px-2 py-1 border border-transparent rounded outline-none transition-colors",
+                        "w-20 md:w-32 px-1 md:px-2 py-1 border border-transparent rounded outline-none transition-colors text-[10px] md:text-sm",
                         !isReadOnly && "hover:border-gray-300 focus:border-emerald-500",
                         isReadOnly && "bg-transparent cursor-default"
                       )}
@@ -414,7 +414,7 @@ export function SalaryDashboard({
                     />
                   </td>
                   {!isReadOnly && (
-                    <td className="px-2 py-2 text-center">
+                    <td className="px-1 md:px-2 py-1 md:py-2 text-center">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -424,7 +424,7 @@ export function SalaryDashboard({
                         className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors flex items-center justify-center mx-auto cursor-pointer"
                         title="삭제"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                       </button>
                     </td>
                   )}
@@ -432,14 +432,14 @@ export function SalaryDashboard({
               ))}
               
               {/* Summary Row */}
-              <tr className="bg-gray-100 font-bold border-t-2 border-gray-300">
-                <td className="px-3 py-3 text-center border-r border-gray-200 sticky left-0 bg-gray-100 z-10">합계</td>
-                <td className="px-3 py-3 text-center border-r border-gray-200 text-gray-500 text-xs">{employees.length}명</td>
-                <td className="px-3 py-3 text-right border-r border-gray-200">{formatCurrency(summary.totalMonthlySalary)}</td>
-                <td className="px-3 py-3 text-right border-r border-gray-200">{formatCurrency(summary.totalDailyWage)}</td>
-                <td className="px-3 py-3 text-center border-r border-gray-200">{summary.totalWorkDays}</td>
-                <td className="px-3 py-3 text-right border-r border-gray-200 text-emerald-700">{formatCurrency(summary.totalSalary)}</td>
-                <td colSpan={isReadOnly ? 1 : 2} className="px-3 py-3"></td>
+              <tr className="bg-gray-100 font-bold border-t-2 border-gray-300 text-[10px] md:text-sm">
+                <td className="px-1 md:px-3 py-2 md:py-3 text-center border-r border-gray-200 sticky left-0 bg-gray-100 z-10">합계</td>
+                <td className="px-1 md:px-3 py-2 md:py-3 text-center border-r border-gray-200 text-gray-500 text-[9px] md:text-xs">{employees.length}명</td>
+                <td className="px-1 md:px-3 py-2 md:py-3 text-right border-r border-gray-200">{formatCurrency(summary.totalMonthlySalary)}</td>
+                <td className="px-1 md:px-3 py-2 md:py-3 text-right border-r border-gray-200">{formatCurrency(summary.totalDailyWage)}</td>
+                <td className="px-1 md:px-3 py-2 md:py-3 text-center border-r border-gray-200">{summary.totalWorkDays}</td>
+                <td className="px-1 md:px-3 py-2 md:py-3 text-right border-r border-gray-200 text-emerald-700">{formatCurrency(summary.totalSalary)}</td>
+                <td colSpan={isReadOnly ? 1 : 2} className="px-1 md:px-3 py-2 md:py-3"></td>
               </tr>
             </tbody>
           </table>
@@ -447,7 +447,7 @@ export function SalaryDashboard({
       </div>
 
       {/* Part-Time and Dispatch Grid */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {/* Part-Time Daily Tracking */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-4 md:p-6 border-b border-gray-200 bg-gray-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
@@ -534,14 +534,14 @@ export function SalaryDashboard({
                   </span>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left">
-                    <thead className="text-[11px] text-gray-700 bg-gray-50 border-b border-gray-200">
+                  <table className="w-full text-[10px] md:text-xs text-left">
+                    <thead className="text-[9px] md:text-[11px] text-gray-700 bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="px-2 py-2 font-semibold text-center border-r border-gray-200 w-12">날짜</th>
-                        <th className="px-2 py-2 font-semibold text-center border-r border-gray-200">이름</th>
-                        <th className="px-2 py-2 font-semibold text-center border-r border-gray-200 w-16">시간</th>
-                        <th className="px-2 py-2 font-semibold text-center border-r border-gray-200 w-20">금액</th>
-                        {!isReadOnly && <th className="px-2 py-2 font-semibold text-center w-10">관리</th>}
+                        <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center border-r border-gray-200 w-10 md:w-12">날짜</th>
+                        <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center border-r border-gray-200">이름</th>
+                        <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center border-r border-gray-200 w-12 md:w-16">시간</th>
+                        <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center border-r border-gray-200 w-16 md:w-20">금액</th>
+                        {!isReadOnly && <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center w-8 md:w-10">관리</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -550,9 +550,9 @@ export function SalaryDashboard({
                         return dayRecords.map((record, recordIdx) => (
                           <tr key={`${dayIdx}-${recordIdx}`} className="hover:bg-gray-50/50 transition-colors">
                             {recordIdx === 0 && (
-                              <td rowSpan={dayRecords.length} className="px-2 py-1.5 text-center border-r border-b border-gray-200 font-medium text-gray-700 bg-gray-50/30 align-middle">
+                              <td rowSpan={dayRecords.length} className="px-1 md:px-2 py-1 md:py-1.5 text-center border-r border-b border-gray-200 font-medium text-gray-700 bg-gray-50/30 align-middle">
                                 <div className="flex flex-col items-center justify-center gap-1">
-                                  <span className="text-xs">{dayIdx + 1}일</span>
+                                  <span className="text-[9px] md:text-xs">{dayIdx + 1}일</span>
                                   {!isReadOnly && (
                                     <button
                                       type="button"
@@ -564,7 +564,7 @@ export function SalaryDashboard({
                                           setPartTimeDays(newDays);
                                         });
                                       }}
-                                      className="text-[10px] px-1.5 py-0.5 bg-white border border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 rounded transition-colors shadow-sm cursor-pointer"
+                                      className="text-[8px] md:text-[10px] px-1 md:px-1.5 py-0.5 bg-white border border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 rounded transition-colors shadow-sm cursor-pointer"
                                       title="해당 일자 전체 삭제"
                                     >
                                       삭제
@@ -573,14 +573,14 @@ export function SalaryDashboard({
                                 </div>
                               </td>
                             )}
-                            <td className="px-2 py-1.5 text-center border-r border-gray-200 text-gray-600">
+                            <td className="px-1 md:px-2 py-1 md:py-1.5 text-center border-r border-gray-200 text-gray-600">
                               {record.name}
-                              {record.author && <span className="ml-1 text-[9px] bg-gray-100 text-gray-500 px-1 py-0.5 rounded">{record.author}</span>}
+                              {record.author && <span className="ml-1 text-[8px] md:text-[9px] bg-gray-100 text-gray-500 px-1 py-0.5 rounded">{record.author}</span>}
                             </td>
-                            <td className="px-2 py-1.5 text-right border-r border-gray-200 font-medium text-gray-600">{record.workHours}H</td>
-                            <td className="px-2 py-1.5 text-right border-r border-gray-200 font-medium text-gray-900">{record.amount.toLocaleString()}원</td>
+                            <td className="px-1 md:px-2 py-1 md:py-1.5 text-right border-r border-gray-200 font-medium text-gray-600">{record.workHours}H</td>
+                            <td className="px-1 md:px-2 py-1 md:py-1.5 text-right border-r border-gray-200 font-medium text-gray-900">{record.amount.toLocaleString()}원</td>
                             {!isReadOnly && (
-                              <td className="px-2 py-1.5 text-center">
+                              <td className="px-1 md:px-2 py-1 md:py-1.5 text-center">
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -594,7 +594,7 @@ export function SalaryDashboard({
                                   className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors flex items-center justify-center mx-auto cursor-pointer"
                                   title="삭제"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                                 </button>
                               </td>
                             )}
@@ -602,8 +602,8 @@ export function SalaryDashboard({
                         ));
                       })}
                       <tr className="bg-gray-50 font-bold border-t-2 border-gray-300">
-                        <td colSpan={3} className="px-2 py-2 text-center border-r border-gray-200 text-gray-700">총 합계</td>
-                        <td className="px-2 py-2 text-right border-r border-gray-200 text-emerald-700 text-sm">{totalPartTime.toLocaleString()}원</td>
+                        <td colSpan={3} className="px-1 md:px-2 py-1.5 md:py-2 text-center border-r border-gray-200 text-gray-700">총 합계</td>
+                        <td className="px-1 md:px-2 py-1.5 md:py-2 text-right border-r border-gray-200 text-emerald-700 text-[10px] md:text-sm">{totalPartTime.toLocaleString()}원</td>
                         {!isReadOnly && <td></td>}
                       </tr>
                     </tbody>
@@ -704,13 +704,13 @@ export function SalaryDashboard({
                   </span>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left">
-                    <thead className="text-[11px] text-gray-700 bg-gray-50 border-b border-gray-200">
+                  <table className="w-full text-[10px] md:text-xs text-left">
+                    <thead className="text-[9px] md:text-[11px] text-gray-700 bg-gray-50 border-b border-gray-200">
                       <tr>
-                        <th className="px-2 py-2 font-semibold text-center border-r border-gray-200 w-12">날짜</th>
-                        <th className="px-2 py-2 font-semibold text-center border-r border-gray-200">이름</th>
-                        <th className="px-2 py-2 font-semibold text-center border-r border-gray-200 w-24">금액</th>
-                        {!isReadOnly && <th className="px-2 py-2 font-semibold text-center w-10">관리</th>}
+                        <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center border-r border-gray-200 w-10 md:w-12">날짜</th>
+                        <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center border-r border-gray-200">이름</th>
+                        <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center border-r border-gray-200 w-16 md:w-24">금액</th>
+                        {!isReadOnly && <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center w-8 md:w-10">관리</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -719,9 +719,9 @@ export function SalaryDashboard({
                         return dayRecords.map((record, recordIdx) => (
                           <tr key={`${dayIdx}-${recordIdx}`} className="hover:bg-gray-50/50 transition-colors">
                             {recordIdx === 0 && (
-                              <td rowSpan={dayRecords.length} className="px-2 py-1.5 text-center border-r border-b border-gray-200 font-medium text-gray-700 bg-gray-50/30 align-middle">
+                              <td rowSpan={dayRecords.length} className="px-1 md:px-2 py-1 md:py-1.5 text-center border-r border-b border-gray-200 font-medium text-gray-700 bg-gray-50/30 align-middle">
                                 <div className="flex flex-col items-center justify-center gap-1">
-                                  <span className="text-xs">{dayIdx + 1}일</span>
+                                  <span className="text-[9px] md:text-xs">{dayIdx + 1}일</span>
                                   {!isReadOnly && (
                                     <button
                                       type="button"
@@ -733,7 +733,7 @@ export function SalaryDashboard({
                                           setDispatchDays(newDays);
                                         });
                                       }}
-                                      className="text-[10px] px-1.5 py-0.5 bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 rounded transition-colors shadow-sm cursor-pointer"
+                                      className="text-[8px] md:text-[10px] px-1 md:px-1.5 py-0.5 bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 rounded transition-colors shadow-sm cursor-pointer"
                                       title="해당 일자 전체 삭제"
                                     >
                                       삭제
@@ -742,13 +742,13 @@ export function SalaryDashboard({
                                 </div>
                               </td>
                             )}
-                            <td className="px-2 py-1.5 text-center border-r border-gray-200 text-gray-600">
+                            <td className="px-1 md:px-2 py-1 md:py-1.5 text-center border-r border-gray-200 text-gray-600">
                               {record.name}
-                              {record.author && <span className="ml-1 text-[9px] bg-gray-100 text-gray-500 px-1 py-0.5 rounded">{record.author}</span>}
+                              {record.author && <span className="ml-1 text-[8px] md:text-[9px] bg-gray-100 text-gray-500 px-1 py-0.5 rounded">{record.author}</span>}
                             </td>
-                            <td className="px-2 py-1.5 text-right border-r border-gray-200 font-medium text-gray-900">{record.amount.toLocaleString()}원</td>
+                            <td className="px-1 md:px-2 py-1 md:py-1.5 text-right border-r border-gray-200 font-medium text-gray-900">{record.amount.toLocaleString()}원</td>
                             {!isReadOnly && (
-                              <td className="px-2 py-1.5 text-center">
+                              <td className="px-1 md:px-2 py-1 md:py-1.5 text-center">
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -762,7 +762,7 @@ export function SalaryDashboard({
                                   className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors flex items-center justify-center mx-auto cursor-pointer"
                                   title="삭제"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                                 </button>
                               </td>
                             )}
@@ -770,8 +770,8 @@ export function SalaryDashboard({
                         ));
                       })}
                       <tr className="bg-gray-50 font-bold border-t-2 border-gray-300">
-                        <td colSpan={2} className="px-2 py-2 text-center border-r border-gray-200 text-gray-700">총 합계</td>
-                        <td className="px-2 py-2 text-right border-r border-gray-200 text-emerald-700 text-sm">{totalDispatch.toLocaleString()}원</td>
+                        <td colSpan={2} className="px-1 md:px-2 py-1.5 md:py-2 text-center border-r border-gray-200 text-gray-700">총 합계</td>
+                        <td className="px-1 md:px-2 py-1.5 md:py-2 text-right border-r border-gray-200 text-emerald-700 text-[10px] md:text-sm">{totalDispatch.toLocaleString()}원</td>
                         {!isReadOnly && <td></td>}
                       </tr>
                     </tbody>
@@ -854,12 +854,12 @@ export function SalaryDashboard({
 
             {/* Status List */}
             <div className="overflow-x-auto mt-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="text-[11px] text-gray-700 bg-gray-50 border-b border-gray-200">
+              <table className="w-full text-[10px] md:text-xs text-left">
+                <thead className="text-[9px] md:text-[11px] text-gray-700 bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-2 py-2 font-semibold text-center border-r border-gray-200">보험 종류</th>
-                    <th className="px-2 py-2 font-semibold text-center border-r border-gray-200 w-24">금액</th>
-                    {!isReadOnly && <th className="px-2 py-2 font-semibold text-center w-10">관리</th>}
+                    <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center border-r border-gray-200">보험 종류</th>
+                    <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center border-r border-gray-200 w-16 md:w-24">금액</th>
+                    {!isReadOnly && <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center w-8 md:w-10">관리</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -870,12 +870,12 @@ export function SalaryDashboard({
                     { label: '산재보험', value: industrialAccidentInsurance, setter: setIndustrialAccidentInsurance },
                   ].map((item) => (
                     <tr key={item.label} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-2 py-1.5 text-center border-r border-gray-200 text-gray-600">{item.label}</td>
-                      <td className="px-2 py-1.5 text-right border-r border-gray-200 font-medium text-gray-900">
+                      <td className="px-1 md:px-2 py-1 md:py-1.5 text-center border-r border-gray-200 text-gray-600">{item.label}</td>
+                      <td className="px-1 md:px-2 py-1 md:py-1.5 text-right border-r border-gray-200 font-medium text-gray-900">
                         {item.value === 0 ? '-' : item.value.toLocaleString() + '원'}
                       </td>
                       {!isReadOnly && (
-                        <td className="px-2 py-1.5 text-center">
+                        <td className="px-1 md:px-2 py-1 md:py-1.5 text-center">
                           <button
                             type="button"
                             onClick={(e) => {
@@ -887,15 +887,15 @@ export function SalaryDashboard({
                             className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors flex items-center justify-center mx-auto cursor-pointer"
                             title="삭제"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                           </button>
                         </td>
                       )}
                     </tr>
                   ))}
                   <tr className="bg-gray-50 font-bold border-t-2 border-gray-300">
-                    <td className="px-2 py-2 text-center border-r border-gray-200 text-gray-700">총 합계</td>
-                    <td className="px-2 py-2 text-right border-r border-gray-200 text-blue-700 text-sm">{summary.totalInsurance.toLocaleString()}원</td>
+                    <td className="px-1 md:px-2 py-1.5 md:py-2 text-center border-r border-gray-200 text-gray-700">총 합계</td>
+                    <td className="px-1 md:px-2 py-1.5 md:py-2 text-right border-r border-gray-200 text-blue-700 text-[10px] md:text-sm">{summary.totalInsurance.toLocaleString()}원</td>
                     {!isReadOnly && <td></td>}
                   </tr>
                 </tbody>
