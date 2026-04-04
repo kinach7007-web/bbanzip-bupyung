@@ -271,22 +271,22 @@ export function SalaryDashboard({
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 md:p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Users className="w-5 h-5 text-emerald-600" />
+        <div className="p-4 md:p-6 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50/50">
+          <div className="w-full">
+            <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Users className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
               직원급여 현황표
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-[10px] md:text-sm text-gray-500 mt-1 break-keep leading-tight">
               ▶ 매일 출근 기준: 오늘 날짜({currentDay}일) 기준으로 근무일수와 급여가 자동 계산됩니다.
             </p>
           </div>
           {!isReadOnly && (
             <button
               onClick={addEmployee}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium"
+              className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 md:py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-xs md:text-sm font-medium shadow-sm"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3 h-3 md:w-4 md:h-4" />
               직원 추가
             </button>
           )}
@@ -450,20 +450,20 @@ export function SalaryDashboard({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {/* Part-Time Daily Tracking */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-4 md:p-6 border-b border-gray-200 bg-gray-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Users className="w-5 h-5 text-emerald-600" />
+          <div className="p-4 md:p-6 border-b border-gray-200 bg-gray-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="w-full">
+              <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Users className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
                 알바급여
               </h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-[10px] md:text-sm text-gray-500 mt-1 break-keep leading-tight">
                 ▶ 날짜와 알바생을 선택하고 근무시간을 입력하세요.
               </p>
             </div>
             {!isReadOnly && (
               <button
                 onClick={() => setIsWorkerModalOpen(true)}
-                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-sm shadow-sm"
+                className="w-full md:w-auto px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-xs md:text-sm shadow-sm text-center"
               >
                 알바정보입력
               </button>
@@ -472,8 +472,8 @@ export function SalaryDashboard({
           <div className="p-4 md:p-6">
             {/* Input Form */}
             {!isReadOnly && (
-              <div className="flex flex-row gap-2 mb-4 items-end">
-                <div className="w-16">
+              <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-3 mb-4 items-end">
+                <div className="w-full md:w-20">
                   <label className="block text-xs font-medium text-gray-700 mb-1">날짜</label>
                   <select 
                     value={selectedPartTimeDay}
@@ -485,7 +485,7 @@ export function SalaryDashboard({
                     ))}
                   </select>
                 </div>
-                <div className="flex-1">
+                <div className="w-full md:flex-1">
                   <label className="block text-xs font-medium text-gray-700 mb-1">이름</label>
                   <select
                     value={partTimeInputWorkerId}
@@ -498,7 +498,7 @@ export function SalaryDashboard({
                     ))}
                   </select>
                 </div>
-                <div className="w-20">
+                <div className="w-full md:w-24">
                   <label className="block text-xs font-medium text-gray-700 mb-1">근무시간</label>
                   <div className="relative">
                     <input
@@ -517,7 +517,7 @@ export function SalaryDashboard({
                 <button
                   onClick={handleAddPartTime}
                   disabled={!partTimeInputWorkerId || partTimeInputWorkHours <= 0}
-                  className="px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  className="w-full md:w-auto px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap h-[34px]"
                 >
                   입력
                 </button>
@@ -620,20 +620,20 @@ export function SalaryDashboard({
 
         {/* Dispatch Daily Tracking */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-4 md:p-6 border-b border-gray-200 bg-gray-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Users className="w-5 h-5 text-emerald-600" />
+          <div className="p-4 md:p-6 border-b border-gray-200 bg-gray-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="w-full">
+              <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Users className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
                 파출급여
               </h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-[10px] md:text-sm text-gray-500 mt-1 break-keep leading-tight">
                 ▶ 날짜와 파출을 선택하고 금액을 입력하세요.
               </p>
             </div>
             {!isReadOnly && (
               <button
                 onClick={() => setIsDispatchWorkerModalOpen(true)}
-                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-sm shadow-sm"
+                className="w-full md:w-auto px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-xs md:text-sm shadow-sm text-center"
               >
                 파출정보입력
               </button>
@@ -642,8 +642,8 @@ export function SalaryDashboard({
           <div className="p-4 md:p-6">
             {/* Input Form */}
             {!isReadOnly && (
-              <div className="flex flex-row gap-2 mb-4 items-end">
-                <div className="w-16">
+              <div className="grid grid-cols-2 md:flex md:flex-row gap-2 md:gap-3 mb-4 items-end">
+                <div className="w-full md:w-20">
                   <label className="block text-xs font-medium text-gray-700 mb-1">날짜</label>
                   <select 
                     value={selectedDispatchDay}
@@ -655,7 +655,7 @@ export function SalaryDashboard({
                     ))}
                   </select>
                 </div>
-                <div className="flex-1">
+                <div className="w-full md:flex-1">
                   <label className="block text-xs font-medium text-gray-700 mb-1">이름</label>
                   <select
                     value={dispatchInputWorkerId}
@@ -668,7 +668,7 @@ export function SalaryDashboard({
                     ))}
                   </select>
                 </div>
-                <div className="w-24">
+                <div className="w-full md:w-28">
                   <label className="block text-xs font-medium text-gray-700 mb-1">금액</label>
                   <div className="relative">
                     <input
@@ -687,7 +687,7 @@ export function SalaryDashboard({
                 <button
                   onClick={handleAddDispatch}
                   disabled={!dispatchInputWorkerId || dispatchInputAmount <= 0}
-                  className="px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  className="w-full md:w-auto px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap h-[34px]"
                 >
                   입력
                 </button>
@@ -791,17 +791,17 @@ export function SalaryDashboard({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 사대보험 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-          <div className="p-4 md:p-6 border-b border-gray-200 bg-gray-50/50 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-blue-600" />
+          <div className="p-4 md:p-6 border-b border-gray-200 bg-gray-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="w-full">
+              <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Shield className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                 4대보험
               </h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-[10px] md:text-sm text-gray-500 mt-1 break-keep leading-tight">
                 ▶ 보험 종류를 선택하고 금액을 입력하세요.
               </p>
             </div>
-            <span className="text-xs text-blue-600 font-medium bg-blue-100 px-2.5 py-1 rounded-full border border-blue-200">월 1회</span>
+            <span className="w-full md:w-auto text-center text-xs text-blue-600 font-medium bg-blue-100 px-2.5 py-1.5 md:py-1 rounded-lg md:rounded-full border border-blue-200">월 1회</span>
           </div>
           <div className="p-4 md:p-6 flex-1 flex flex-col">
             {/* Input Form */}

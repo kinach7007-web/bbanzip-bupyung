@@ -250,7 +250,36 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 export default function App() {
-  const [isManualToday, setIsManualToday] = useState(false);
+  const [businessDateStr, setBusinessDateStr] = useState<string>(() => {
+    const saved = localStorage.getItem('pyeobanjib-business-date');
+    if (saved) return saved;
+    const now = new Date();
+    if (now.getHours() < 10) {
+      now.setDate(now.getDate() - 1);
+    }
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('pyeobanjib-business-date', businessDateStr);
+  }, [businessDateStr]);
+
+  const [isDailyCloseConfirmOpen, setIsDailyCloseConfirmOpen] = useState(false);
+  const [nextBusinessDateStr, setNextBusinessDateStr] = useState('');
+
+  const handleDailyCloseClick = () => {
+    const [year, month, day] = businessDateStr.split('-').map(Number);
+    const nextDate = new Date(year, month - 1, day + 1);
+    const nextStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`;
+    setNextBusinessDateStr(nextStr);
+    setIsDailyCloseConfirmOpen(true);
+  };
+
+  const confirmDailyClose = () => {
+    setBusinessDateStr(nextBusinessDateStr);
+    setIsDailyCloseConfirmOpen(false);
+  };
+
   const [currentMonth, setCurrentMonth] = useState<string>(() => {
     const saved = localStorage.getItem('pyeobanjib-current-month');
     if (saved) return saved;
@@ -259,15 +288,8 @@ export default function App() {
   });
 
   const getBusinessDate = () => {
-    if (isManualToday) {
-      const [year, month] = currentMonth.split('-').map(Number);
-      const lastDay = new Date(year, month, 0).getDate();
-      return `${currentMonth}-${String(lastDay).padStart(2, '0')}`;
-    }
-    const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    if (todayStr.startsWith(currentMonth)) {
-      return todayStr;
+    if (businessDateStr.startsWith(currentMonth)) {
+      return businessDateStr;
     } else {
       const [year, month] = currentMonth.split('-').map(Number);
       const lastDay = new Date(year, month, 0).getDate();
@@ -296,6 +318,21 @@ export default function App() {
   const [isClosingMonth, setIsClosingMonth] = useState(false);
   const [isClosingLoading, setIsClosingLoading] = useState(false);
   const [salaryState, setSalaryState] = useState<SalaryState>(() => generateInitialSalaryState(currentMonth, user?.id));
+
+  const canDailyClose = useMemo(() => {
+    const [year, month, day] = businessDateStr.split('-').map(Number);
+    
+    // Check if there's any transaction for the current business date
+    const hasTransaction = transactions.some(t => t.date === businessDateStr);
+    
+    // Check if there's any income/expense in cashBalanceData for the current business date
+    const dayNum = day;
+    const isSameMonth = businessDateStr.startsWith(currentMonth);
+    const cashRow = isSameMonth ? cashBalanceData?.rows?.[dayNum - 1] : null;
+    const hasCashData = cashRow && (cashRow.income > 0 || cashRow.transferOut > 0 || cashRow.otherExpense > 0);
+    
+    return hasTransaction || hasCashData;
+  }, [businessDateStr, transactions, cashBalanceData, currentMonth]);
 
   // Password Reset State
   const [resetCode, setResetCode] = useState<string | null>(null);
@@ -674,7 +711,7 @@ export default function App() {
     if (!newExpense.date) {
       setNewExpense(prev => ({ ...prev, date: getBusinessDate() }));
     }
-  }, [currentMonth, isManualToday]);
+  }, [currentMonth, businessDateStr]);
 
   // Generate sales transactions from Cash Balance Sheet
   const cashTransactions = useMemo(() => {
@@ -1720,8 +1757,8 @@ export default function App() {
                       vendorList={{}}
                       isReadOnly
                       getBusinessDate={getBusinessDate}
-                      isManualToday={isManualToday}
-                      setIsManualToday={setIsManualToday}
+                      handleDailyClose={handleDailyCloseClick}
+                      canDailyClose={canDailyClose}
                     />
                   ) : activeTab === 'kpi' ? (
                     <KPIDashboard 
@@ -1817,8 +1854,8 @@ export default function App() {
             handleAddExpense={handleAddExpense}
             vendorList={vendorList}
             getBusinessDate={getBusinessDate}
-            isManualToday={isManualToday}
-            setIsManualToday={setIsManualToday}
+            handleDailyClose={handleDailyCloseClick}
+            canDailyClose={canDailyClose}
           />
         ) : activeTab === 'kpi' ? (
           <KPIDashboard 
@@ -1846,6 +1883,50 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Daily Close Confirmation Modal */}
+      <AnimatePresence>
+        {isDailyCloseConfirmOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mb-4 mx-auto">
+                  <Lock className="w-6 h-6 text-rose-600" />
+                </div>
+                <h3 className="text-xl font-bold text-center text-gray-900 mb-2">일일 마감</h3>
+                <p className="text-center text-gray-600 mb-6">
+                  현재 영업일(<strong className="text-gray-900">{businessDateStr}</strong>)을 마감하고<br/>
+                  다음 날(<strong className="text-rose-600">{nextBusinessDateStr}</strong>)로 넘어가시겠습니까?
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsDailyCloseConfirmOpen(false)}
+                    className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={confirmDailyClose}
+                    className="flex-1 px-4 py-2.5 bg-rose-600 text-white font-medium rounded-xl hover:bg-rose-700 transition-colors shadow-lg shadow-rose-200"
+                  >
+                    마감하기
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Reset All Data Confirmation Modal */}
       <AnimatePresence>

@@ -48,8 +48,8 @@ interface PLDashboardProps {
   vendorList: Record<string, string[]>;
   isReadOnly?: boolean;
   getBusinessDate?: () => string;
-  isManualToday?: boolean;
-  setIsManualToday?: (val: boolean) => void;
+  handleDailyClose?: () => void;
+  canDailyClose?: boolean;
 }
 
 export function PLDashboard({ 
@@ -69,8 +69,8 @@ export function PLDashboard({
   vendorList,
   isReadOnly = false,
   getBusinessDate,
-  isManualToday,
-  setIsManualToday
+  handleDailyClose,
+  canDailyClose = true
 }: PLDashboardProps) {
   const [selectedCell, setSelectedCell] = React.useState<{ row: LedgerRow, day: number } | null>(null);
 
@@ -340,17 +340,16 @@ export function PLDashboard({
                 </button>
                 <button 
                   onClick={() => {
-                    if (setIsManualToday) {
-                      setIsManualToday(true);
-                      alert('일일 마감이 완료되었습니다. 이제부터 입력하는 데이터는 오늘 날짜로 기록됩니다.');
+                    if (handleDailyClose) {
+                      handleDailyClose();
                     }
                   }}
-                  disabled={isManualToday}
+                  disabled={!canDailyClose}
                   className={cn(
                     "px-3 md:px-6 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg",
-                    isManualToday 
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none" 
-                      : "bg-rose-600 text-white hover:bg-rose-700 shadow-rose-100"
+                    canDailyClose 
+                      ? "bg-rose-600 text-white hover:bg-rose-700 shadow-rose-100"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
                   )}
                 >
                   <Lock className="w-3 h-3 md:w-4 h-4" />
@@ -365,8 +364,7 @@ export function PLDashboard({
               <Info className="w-3 h-3 md:w-4 h-4 text-indigo-500" />
               <span>
                 현재 입력 기준일: <strong className="text-indigo-600">{getBusinessDate ? getBusinessDate() : '설정 전'}</strong>
-                {new Date().getHours() < 10 && !isManualToday && " (오전 10시 이전이므로 전날 날짜로 자동 설정됨)"}
-                {isManualToday && " (일일 마감 완료 - 오늘 날짜로 설정됨)"}
+                {!canDailyClose && " (매출이나 지출을 1건 이상 입력해야 마감할 수 있습니다)"}
               </span>
             </div>
           )}
