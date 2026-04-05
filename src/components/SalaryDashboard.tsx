@@ -277,14 +277,14 @@ export function SalaryDashboard({
               <Users className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
               직원급여 현황표
             </h2>
-            <p className="text-[10px] md:text-sm text-gray-500 mt-1 break-keep leading-tight">
+            <p className="text-[8px] md:text-xs text-gray-400 mt-1 break-keep leading-tight">
               ▶ 매일 출근 기준: 오늘 날짜({currentDay}일) 기준으로 근무일수와 급여가 자동 계산됩니다.
             </p>
           </div>
           {!isReadOnly && (
             <button
               onClick={addEmployee}
-              className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 md:py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-xs md:text-sm font-medium shadow-sm"
+              className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 md:py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-xs md:text-sm font-medium shadow-sm whitespace-nowrap"
             >
               <Plus className="w-3 h-3 md:w-4 md:h-4" />
               직원 추가
@@ -463,7 +463,7 @@ export function SalaryDashboard({
             {!isReadOnly && (
               <button
                 onClick={() => setIsWorkerModalOpen(true)}
-                className="w-full md:w-auto px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-xs md:text-sm shadow-sm text-center"
+                className="w-full md:w-auto px-4 py-2 bg-blue-600 border border-blue-700 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-xs md:text-sm shadow-sm text-center whitespace-nowrap"
               >
                 알바정보입력
               </button>
@@ -633,7 +633,7 @@ export function SalaryDashboard({
             {!isReadOnly && (
               <button
                 onClick={() => setIsDispatchWorkerModalOpen(true)}
-                className="w-full md:w-auto px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-xs md:text-sm shadow-sm text-center"
+                className="w-full md:w-auto px-4 py-2 bg-blue-600 border border-blue-700 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-xs md:text-sm shadow-sm text-center whitespace-nowrap"
               >
                 파출정보입력
               </button>
@@ -801,7 +801,7 @@ export function SalaryDashboard({
                 ▶ 보험 종류를 선택하고 금액을 입력하세요.
               </p>
             </div>
-            <span className="w-full md:w-auto text-center text-xs text-blue-600 font-medium bg-blue-100 px-2.5 py-1.5 md:py-1 rounded-lg md:rounded-full border border-blue-200">월 1회</span>
+            <span className="w-full md:w-auto text-center text-xs text-blue-600 font-medium bg-blue-100 px-2.5 py-1.5 md:py-1 rounded-lg md:rounded-full border border-blue-200 whitespace-nowrap">월 1회</span>
           </div>
           <div className="p-4 md:p-6 flex-1 flex flex-col">
             {/* Input Form */}

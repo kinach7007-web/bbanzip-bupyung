@@ -79,7 +79,73 @@ export function PLDashboard({
 
   const computedLedgerData = React.useMemo(() => {
     // Deep clone the base data
-    const data = JSON.parse(JSON.stringify(DAILY_LEDGER_DATA)) as LedgerRow[];
+    let data = JSON.parse(JSON.stringify(DAILY_LEDGER_DATA)) as LedgerRow[];
+
+    // Helper to replace children of a parent node with dynamic vendors
+    const replaceChildrenWithVendors = (parentId: string, categoryName: string, subgroupId?: string) => {
+      const vendors = vendorList[categoryName] || [];
+      if (vendors.length === 0) return;
+
+      const targetId = subgroupId || parentId;
+      const insertIndex = data.findIndex(r => r.id === targetId);
+      if (insertIndex === -1) return;
+
+      // Remove existing children
+      data = data.filter(r => !(r.id.startsWith(targetId + '-') && r.id !== targetId && !r.isSubtotal));
+
+      // Insert new vendors
+      const newRows = vendors.map((vendor, idx) => ({
+        id: `${targetId}-${idx + 1}`,
+        category: vendor,
+        total: 0,
+        ratio: 0,
+        remarks: '',
+        daily: Array(31).fill(0),
+        level: subgroupId ? 2 : 1
+      }));
+
+      const newInsertIndex = data.findIndex(r => r.id === targetId);
+      data.splice(newInsertIndex + 1, 0, ...newRows);
+    };
+
+    // Replace 매출원가 (2) - Flatten it and remove 2-1 and 2-2
+    const cogsVendors = vendorList['매출원가'] || [];
+    if (cogsVendors.length > 0) {
+      data = data.filter(r => !(r.id.startsWith('2-') && r.id !== '2'));
+      const newRows = cogsVendors.map((vendor, idx) => ({
+        id: `2-${idx + 1}`,
+        category: vendor,
+        total: 0,
+        ratio: 0,
+        remarks: '',
+        daily: Array(31).fill(0),
+        level: 1
+      }));
+      const insertIndex = data.findIndex(r => r.id === '2');
+      data.splice(insertIndex + 1, 0, ...newRows);
+    }
+
+    replaceChildrenWithVendors('5', '고정비');
+    replaceChildrenWithVendors('6', '변동비');
+
+    // Replace 마케팅 (7) - Make it a header and add children
+    const marketingVendors = vendorList['마케팅'] || [];
+    if (marketingVendors.length > 0) {
+      const parentIndex = data.findIndex(r => r.id === '7');
+      if (parentIndex !== -1) {
+        data[parentIndex].isHeader = true;
+        const newRows = marketingVendors.map((vendor, idx) => ({
+          id: `7-${idx + 1}`,
+          category: vendor,
+          total: 0,
+          ratio: 0,
+          remarks: '',
+          daily: Array(31).fill(0),
+          level: 1
+        }));
+        data.splice(parentIndex + 1, 0, ...newRows);
+      }
+    }
     
     // Apply salary data
     const salaryRows = [
@@ -142,7 +208,7 @@ export function PLDashboard({
       } else {
         // Find a generic/other row for the category
         let parentId = '';
-        if (t.category === '매출원가') parentId = '2-2';
+        if (t.category === '매출원가') parentId = '2';
         else if (t.category === '인건비') parentId = '4';
         else if (t.category === '임대료') parentId = '5';
         else if (t.category === '변동비') parentId = '6';
@@ -253,7 +319,7 @@ export function PLDashboard({
     });
 
     return data;
-  }, [transactions]);
+  }, [transactions, vendorList, salaryBreakdown, currentMonth]);
 
   const getCellTransactions = (row: LedgerRow, day: number) => {
     const [year, month] = currentMonth.split('-');
@@ -304,28 +370,24 @@ export function PLDashboard({
       </div>
 
       <section className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm">
-        <div className="p-4 md:p-6 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-base md:text-lg font-bold text-gray-900">일별 세부 현황</h3>
-            <p className="text-xs md:text-sm text-gray-500">Monthly Daily Ledger Spreadsheet</p>
-          </div>
-          <div className="flex items-center gap-2 md:gap-3">
-            <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full">
-              <CalendarIcon className="w-3 h-3" />
-              {currentMonth.split('-')[0]}년 {currentMonth.split('-')[1]}월
+        <div className="p-3 sm:p-4 md:p-6 border-b border-gray-50 flex flex-col gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:flex sm:flex-row items-center gap-2 sm:gap-2 w-full">
+            <div className="flex items-center justify-center gap-1.5 sm:gap-1 text-xs sm:text-sm md:text-base font-bold text-emerald-700 bg-emerald-50 px-2 sm:px-4 py-2.5 sm:py-2 md:py-2.5 rounded-xl border border-emerald-100 whitespace-nowrap w-full sm:w-auto sm:mr-auto sm:flex-shrink-0">
+              <CalendarIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>{currentMonth.split('-')[0]}년 {currentMonth.split('-')[1]}월</span>
             </div>
             {!isReadOnly && (
-              <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
+              <>
                 <button 
                   onClick={() => {
                     const dateStr = getBusinessDate ? getBusinessDate() : new Date().toISOString().split('T')[0];
                     setNewExpense({ ...newExpense, category: '매출', name: '', status: 'paid', date: dateStr });
                     setIsModalOpen(true);
                   }}
-                  className="px-3 md:px-6 py-2 md:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-100 transition-all active:scale-95"
+                  className="w-full sm:w-auto sm:flex-none px-2 sm:px-3 md:px-6 py-2.5 sm:py-2 md:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs sm:text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 shadow-sm sm:shadow-lg shadow-blue-100 transition-all active:scale-95 whitespace-nowrap"
                 >
-                  <Plus className="w-3 h-3 md:w-4 h-4" />
-                  매출 입력
+                  <Plus className="w-3.5 h-3.5 md:w-4 h-4" />
+                  매출입력
                 </button>
                 <button 
                   onClick={() => {
@@ -333,10 +395,10 @@ export function PLDashboard({
                     setNewExpense({ ...newExpense, category: '매출원가', name: '', status: 'unpaid', date: dateStr });
                     setIsModalOpen(true);
                   }}
-                  className="px-3 md:px-6 py-2 md:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 transition-all active:scale-95"
+                  className="w-full sm:w-auto sm:flex-none px-2 sm:px-3 md:px-6 py-2.5 sm:py-2 md:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs sm:text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 shadow-sm sm:shadow-lg shadow-emerald-100 transition-all active:scale-95 whitespace-nowrap"
                 >
-                  <Plus className="w-3 h-3 md:w-4 h-4" />
-                  지출 입력
+                  <Plus className="w-3.5 h-3.5 md:w-4 h-4" />
+                  지출입력
                 </button>
                 <button 
                   onClick={() => {
@@ -346,21 +408,21 @@ export function PLDashboard({
                   }}
                   disabled={!canDailyClose}
                   className={cn(
-                    "px-3 md:px-6 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg",
+                    "w-full sm:w-auto sm:flex-none px-2 sm:px-3 md:px-6 py-2.5 sm:py-2 md:py-2.5 rounded-xl font-bold text-xs sm:text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 transition-all active:scale-95 shadow-sm sm:shadow-lg whitespace-nowrap",
                     canDailyClose 
                       ? "bg-rose-600 text-white hover:bg-rose-700 shadow-rose-100"
                       : "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
                   )}
                 >
-                  <Lock className="w-3 h-3 md:w-4 h-4" />
+                  <Lock className="w-3.5 h-3.5 md:w-4 h-4" />
                   일일마감
                 </button>
-              </div>
+              </>
             )}
           </div>
 
           {!isReadOnly && (
-            <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-2 text-[10px] md:text-xs text-gray-500">
+            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-2 text-[10px] md:text-xs text-gray-500">
               <Info className="w-3 h-3 md:w-4 h-4 text-indigo-500" />
               <span>
                 현재 입력 기준일: <strong className="text-indigo-600">{getBusinessDate ? getBusinessDate() : '설정 전'}</strong>

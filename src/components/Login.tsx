@@ -406,20 +406,6 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
               {isResettingPassword ? "로그인으로 돌아가기" : "비밀번호를 잊으셨나요?"}
             </button>
           )}
-
-          <button
-            onClick={() => onLogin({
-              id: 'preview-admin',
-              name: '관리자(미리보기)',
-              role: '운영자',
-              email: 'admin@preview.com',
-              isApproved: true,
-              isBlocked: false
-            })}
-            className="mt-8 py-3 px-4 bg-gray-50 text-gray-500 rounded-2xl text-sm font-medium hover:bg-gray-100 hover:text-indigo-600 transition-all border border-gray-100"
-          >
-            로그인 없이 시스템 둘러보기 (미리보기 모드)
-          </button>
         </div>
         
         <p className="mt-8 text-xs text-gray-400">

@@ -28,7 +28,8 @@ import {
   ShieldAlert,
   Clock,
   History,
-  Download
+  Download,
+  Edit2
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -63,6 +64,7 @@ import { ArchiveViewer } from './components/ArchiveViewer';
 import { Login, type User } from './components/Login';
 import { PasswordReset } from './components/PasswordReset';
 import { UserManagement } from './components/UserManagement';
+import { VendorManagementModal } from './components/VendorManagementModal';
 import { type Employee, type PartTimeWorker, type PartTimeRecord, type DispatchRecord, type SalaryState, type MonthlyArchive } from './types';
 
 const currentDay = new Date().getDate();
@@ -677,26 +679,10 @@ export default function App() {
     }
   };
 
-  // Persistence: Save to localStorage
+  // Persistence: Save to localStorage (only UI state)
   useEffect(() => {
     localStorage.setItem('pyeobanjib-current-month', currentMonth);
   }, [currentMonth]);
-
-  useEffect(() => {
-    localStorage.setItem('pyeobanjib-transactions', JSON.stringify(transactions));
-  }, [transactions]);
-
-  useEffect(() => {
-    localStorage.setItem('pyeobanjib-cash-data', JSON.stringify(cashBalanceData));
-  }, [cashBalanceData]);
-
-  useEffect(() => {
-    localStorage.setItem('pyeobanjib-salary-state', JSON.stringify(salaryState));
-  }, [salaryState]);
-
-  useEffect(() => {
-    localStorage.setItem('pyeobanjib-archives', JSON.stringify(archives));
-  }, [archives]);
   
   // Form state
   const [newExpense, setNewExpense] = useState({
@@ -827,30 +813,33 @@ export default function App() {
         additionalAmount = Math.max(additionalAmount, autoCardFees);
       }
 
-      // Also update details if they exist
-      const updatedDetails = cat.details?.map(detail => {
-        let detailTransactions = [];
-        if (cat.name === '매출원가') {
-          // Map vendors to sub-categories based on user request
-          const meatVendors = ['뼈(제일축산)', '우거지', '모자반(제주)', '참좋은식품', '프로축산(내장)', '곱창(CNK)', '오돌뼈(미트촌)'];
-          const groceryVendors = ['우리과일야채(조병윤)', '모아상사(공산품)', '대형마트 & 부평시장', '편의점', '다이소', '쌀(병남형님)', '모노마트', '화미(다화에프앤비)', '웰빙나눔유통', '주유'];
-          
-          if (detail.name === '[육류 및 육수 재료]') {
-            detailTransactions = allTransactions.filter(t => t.category === '매출원가' && meatVendors.includes(t.name));
-          } else if (detail.name === '[식자재&공산품 소계]') {
-            detailTransactions = allTransactions.filter(t => t.category === '매출원가' && groceryVendors.includes(t.name));
-          } else {
-            detailTransactions = allTransactions.filter(t => t.category === cat.name && t.name === detail.name);
-          }
-        } else {
-          detailTransactions = allTransactions.filter(t => t.category === cat.name && t.name === detail.name);
+      let updatedDetails = cat.details;
+
+      if (['매출원가', '변동비', '마케팅', '고정비'].includes(cat.name)) {
+        const vendors = vendorList[cat.name] || [];
+        updatedDetails = vendors.map(vendor => {
+          const detailTransactions = allTransactions.filter(t => t.category === cat.name && t.name === vendor);
+          const amount = detailTransactions.reduce((sum, t) => sum + t.amount, 0);
+          return { name: vendor, amount, ratio: 0 };
+        });
+        
+        // Add any transactions that have a name NOT in the vendor list
+        const unknownTransactions = allTransactions.filter(t => t.category === cat.name && !vendors.includes(t.name));
+        if (unknownTransactions.length > 0) {
+          const unknownAmount = unknownTransactions.reduce((sum, t) => sum + t.amount, 0);
+          updatedDetails.push({ name: '기타/삭제된 거래처', amount: unknownAmount, ratio: 0 });
         }
-        const detailAdditionalAmount = detailTransactions.reduce((sum, t) => sum + t.amount, 0);
-        return {
-          ...detail,
-          amount: detail.amount + detailAdditionalAmount
-        };
-      });
+      } else {
+        // For other categories (like 매출, 카드수수료), keep existing logic or just use existing details
+        updatedDetails = cat.details?.map(detail => {
+          const detailTransactions = allTransactions.filter(t => t.category === cat.name && t.name === detail.name);
+          const detailAdditionalAmount = detailTransactions.reduce((sum, t) => sum + t.amount, 0);
+          return {
+            ...detail,
+            amount: detail.amount + detailAdditionalAmount
+          };
+        });
+      }
 
       return {
         ...cat,
@@ -864,7 +853,7 @@ export default function App() {
       ...cat,
       ratio: Number(((cat.amount / currentTotalSales) * 100).toFixed(1))
     }));
-  }, [allTransactions, currentTotalSales, salaryBreakdown]);
+  }, [allTransactions, currentTotalSales, salaryBreakdown, vendorList]);
 
   const currentSummary = useMemo(() => {
     const totalSales = currentTotalSales;
@@ -1230,6 +1219,81 @@ export default function App() {
 
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isVendorModalOpen, setIsVendorModalOpen] = useState(false);
+
+  const handleUpdateVendor = async (category: string, oldName: string, newName: string) => {
+    if (!user) return;
+    try {
+      const batch = writeBatch(db);
+      
+      // Update vendor list
+      const newVendorList = { ...vendorList };
+      if (newVendorList[category]) {
+        newVendorList[category] = newVendorList[category].map(v => v === oldName ? newName : v);
+      }
+      batch.set(doc(db, 'settings', 'global'), { vendorList: newVendorList }, { merge: true });
+
+      // Update existing transactions in current month
+      const transactionsToUpdate = transactions.filter(t => t.category === category && t.name === oldName);
+      transactionsToUpdate.forEach(t => {
+        batch.update(doc(db, 'transactions', t.id), { name: newName });
+      });
+
+      await batch.commit();
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, 'settings/global');
+    }
+  };
+
+  const handleDeleteVendor = async (category: string, vendorName: string) => {
+    if (!user) return;
+    try {
+      const newVendorList = { ...vendorList };
+      if (newVendorList[category]) {
+        newVendorList[category] = newVendorList[category].filter(v => v !== vendorName);
+      }
+      await setDoc(doc(db, 'settings', 'global'), { vendorList: newVendorList }, { merge: true });
+      window.location.reload(); // Reload to confirm deletion
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, 'settings/global');
+    }
+  };
+
+  const handleReorderVendor = async (category: string, startIndex: number, endIndex: number) => {
+    if (!user) return;
+    try {
+      const newVendorList = { ...vendorList };
+      if (newVendorList[category]) {
+        const result = Array.from(newVendorList[category]);
+        const [removed] = result.splice(startIndex, 1);
+        result.splice(endIndex, 0, removed);
+        newVendorList[category] = result;
+        
+        // Optimistic update
+        setVendorList(newVendorList);
+        
+        await setDoc(doc(db, 'settings', 'global'), { vendorList: newVendorList }, { merge: true });
+      }
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, 'settings/global');
+    }
+  };
+
+  const handleAddVendor = async (category: string, vendorName: string) => {
+    if (!user) return;
+    try {
+      const newVendorList = { ...vendorList };
+      if (!newVendorList[category]) {
+        newVendorList[category] = [];
+      }
+      if (!newVendorList[category].includes(vendorName)) {
+        newVendorList[category].push(vendorName);
+      }
+      await setDoc(doc(db, 'settings', 'global'), { vendorList: newVendorList }, { merge: true });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, 'settings/global');
+    }
+  };
 
   const [resetError, setResetError] = useState<string | null>(null);
 
@@ -1514,6 +1578,19 @@ export default function App() {
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">시스템 설정</p>
                       </div>
                       
+                      <button 
+                        onClick={() => {
+                          setIsSettingsOpen(false);
+                          setIsVendorModalOpen(true);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        거래처 관리
+                      </button>
+
+                      <div className="h-px bg-gray-50 my-1" />
+
                       <button 
                         onClick={() => {
                           setIsSettingsOpen(false);
@@ -1883,6 +1960,16 @@ export default function App() {
           />
         )}
       </main>
+
+      <VendorManagementModal
+        isOpen={isVendorModalOpen}
+        onClose={() => setIsVendorModalOpen(false)}
+        vendorList={vendorList}
+        onUpdateVendor={handleUpdateVendor}
+        onDeleteVendor={handleDeleteVendor}
+        onAddVendor={handleAddVendor}
+        onReorderVendor={handleReorderVendor}
+      />
 
       {/* Daily Close Confirmation Modal */}
       <AnimatePresence>
