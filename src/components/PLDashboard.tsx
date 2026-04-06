@@ -192,12 +192,15 @@ export function PLDashboard({
 
       // Special case for Sales mapping
       if (t.category === '매출') {
-        if (cleanTName === '계좌이체' || cleanTName === '현금') {
+        if (cleanTName === '현금') {
           matchingRow = data.find(r => r.id === '1-1');
         } else if (cleanTName === '카드') {
           matchingRow = data.find(r => r.id === '1-2');
         } else if (cleanTName === '배달 정산 금액') {
           matchingRow = data.find(r => r.id === '1-sub-1');
+        } else if (cleanTName === '계좌이체') {
+          // Explicitly ignore '계좌이체' so it doesn't fall into the fallback
+          matchingRow = undefined;
         } else if (!matchingRow) {
           matchingRow = data.find(r => r.id === '1-2'); // Default fallback
         }
