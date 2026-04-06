@@ -161,19 +161,20 @@ service cloud.firestore {
     match /cashBalanceData/{month} {
       allow read: if isApproved() && isNotBlocked();
       allow create, update: if isApproved() && isNotBlocked() && isValidCashBalance(request.resource.data);
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (isApproved() && isNotBlocked());
     }
 
     match /salaryState/{month} {
       allow read: if isApproved() && isNotBlocked();
       allow create, update: if isApproved() && isNotBlocked() && isValidSalaryState(request.resource.data);
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (isApproved() && isNotBlocked());
     }
 
     match /archives/{archiveId} {
       allow read: if isApproved() && isNotBlocked();
       allow create: if isApproved() && isNotBlocked();
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin() || (isApproved() && isNotBlocked());
     }
 
     match /settings/global {

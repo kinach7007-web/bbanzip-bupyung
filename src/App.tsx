@@ -268,6 +268,9 @@ export default function App() {
 
   const [isDailyCloseConfirmOpen, setIsDailyCloseConfirmOpen] = useState(false);
   const [nextBusinessDateStr, setNextBusinessDateStr] = useState('');
+  
+  const [archiveToDelete, setArchiveToDelete] = useState<MonthlyArchive | null>(null);
+  const [deleteArchivePassword, setDeleteArchivePassword] = useState('');
 
   const handleDailyCloseClick = () => {
     const [year, month, day] = businessDateStr.split('-').map(Number);
@@ -617,6 +620,29 @@ export default function App() {
       await setDoc(doc(db, 'salaryState', currentMonth), sanitizeForFirestore(newData));
     } catch (e) {
       handleFirestoreError(e, OperationType.UPDATE, `salaryState/${currentMonth}`);
+    }
+  };
+
+  const handleDeleteArchive = (archive: MonthlyArchive) => {
+    setArchiveToDelete(archive);
+    setDeleteArchivePassword('');
+  };
+
+  const confirmDeleteArchive = async () => {
+    if (!archiveToDelete) return;
+    
+    if (deleteArchivePassword !== '9432') {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, 'archives', archiveToDelete.id));
+      setArchiveToDelete(null);
+      setDeleteArchivePassword('');
+      alert(`${archiveToDelete.month} 과거 기록이 삭제되었습니다.`);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, `archives/${archiveToDelete.id}`);
     }
   };
 
@@ -1297,6 +1323,48 @@ export default function App() {
 
   const [resetError, setResetError] = useState<string | null>(null);
 
+  // Auto-reset app once for the admin
+  useEffect(() => {
+    const autoResetApp = async () => {
+      if (user?.email === 'kinach7007@gmail.com' && !localStorage.getItem('app_fully_reset_once_v2')) {
+        try {
+          console.log("Auto-resetting app per admin request...");
+          const collectionsToDelete = ['transactions', 'cashBalanceData', 'salaryState', 'archives'];
+          
+          for (const collName of collectionsToDelete) {
+            const snapshot = await getDocs(collection(db, collName));
+            for (let i = 0; i < snapshot.docs.length; i += 500) {
+              const batch = writeBatch(db);
+              const chunk = snapshot.docs.slice(i, i + 500);
+              chunk.forEach(d => batch.delete(d.ref));
+              await batch.commit();
+            }
+          }
+          
+          // Clear local storage keys related to the app
+          const keysToRemove: string[] = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('pyeobanjib-')) {
+              keysToRemove.push(key);
+            }
+          }
+          keysToRemove.forEach(key => localStorage.removeItem(key));
+
+          localStorage.setItem('app_fully_reset_once_v2', 'true');
+          console.log("App automatically reset.");
+          alert("요청하신 대로 앱의 모든 데이터(거래내역, 시재, 급여, 보관함)가 완전히 초기화되었습니다!");
+          window.location.reload();
+        } catch (e) {
+          console.error("Failed to reset app:", e);
+        }
+      }
+    };
+    if (user) {
+      autoResetApp();
+    }
+  }, [user]);
+
   const handleResetAllData = async () => {
     if (!user) return;
     setResetError(null);
@@ -1344,10 +1412,11 @@ export default function App() {
       setSalaryState(generateInitialSalaryState(currentMonth, user.id));
       setArchives([]);
       
-      // 3. Close modal and show success (no reload needed)
+      // 3. Close modal and show success
       setIsResetConfirmOpen(false);
       setIsClosingLoading(false);
       alert("데이터가 성공적으로 초기화되었습니다.");
+      window.location.reload();
       
     } catch (e: any) {
       console.error("Reset error:", e);
@@ -1957,6 +2026,7 @@ export default function App() {
               setActiveTab('pl');
             }} 
             onDownloadExcel={handleDownloadArchiveExcel}
+            onDeleteArchive={handleDeleteArchive}
           />
         )}
       </main>
@@ -2007,6 +2077,67 @@ export default function App() {
                     className="flex-1 px-4 py-2.5 bg-rose-600 text-white font-medium rounded-xl hover:bg-rose-700 transition-colors shadow-lg shadow-rose-200"
                   >
                     마감하기
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Archive Confirmation Modal */}
+      <AnimatePresence>
+        {archiveToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[200] p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+            >
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4 mx-auto">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <h3 className="text-xl font-bold text-center text-gray-900 mb-2">과거 기록 삭제</h3>
+                <p className="text-center text-gray-600 mb-6">
+                  <strong className="text-gray-900">{archiveToDelete.month}</strong> 과거 기록을 정말 삭제하시겠습니까?<br/>
+                  이 작업은 되돌릴 수 없습니다.
+                </p>
+                
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    비밀번호
+                  </label>
+                  <input
+                    type="password"
+                    value={deleteArchivePassword}
+                    onChange={(e) => setDeleteArchivePassword(e.target.value)}
+                    placeholder="비밀번호를 입력하세요"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setArchiveToDelete(null);
+                      setDeleteArchivePassword('');
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={confirmDeleteArchive}
+                    className="flex-1 px-4 py-2.5 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
+                  >
+                    삭제하기
                   </button>
                 </div>
               </div>

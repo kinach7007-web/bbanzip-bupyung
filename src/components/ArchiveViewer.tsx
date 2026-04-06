@@ -1,5 +1,5 @@
 import React from 'react';
-import { Archive, Calendar, ArrowRight, TrendingUp, DollarSign, Download } from 'lucide-react';
+import { Archive, Calendar, ArrowRight, TrendingUp, DollarSign, Download, Trash2 } from 'lucide-react';
 import { formatCurrency } from '../App';
 
 interface MonthlyArchive {
@@ -19,9 +19,10 @@ interface ArchiveViewerProps {
   archives: MonthlyArchive[];
   onSelectArchive: (archive: MonthlyArchive) => void;
   onDownloadExcel: (archive: MonthlyArchive) => void;
+  onDeleteArchive: (archive: MonthlyArchive) => void;
 }
 
-export function ArchiveViewer({ archives, onSelectArchive, onDownloadExcel }: ArchiveViewerProps) {
+export function ArchiveViewer({ archives, onSelectArchive, onDownloadExcel, onDeleteArchive }: ArchiveViewerProps) {
   if (archives.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
@@ -92,16 +93,28 @@ export function ArchiveViewer({ archives, onSelectArchive, onDownloadExcel }: Ar
 
             <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between">
               <span className="text-[10px] text-gray-400">마감일: {new Date(archive.timestamp).toLocaleDateString()}</span>
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDownloadExcel(archive);
-                }}
-                className="p-2 hover:bg-gray-50 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
-                title="엑셀 다운로드"
-              >
-                <Download className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDownloadExcel(archive);
+                  }}
+                  className="p-2 hover:bg-gray-50 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+                  title="엑셀 다운로드"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteArchive(archive);
+                  }}
+                  className="p-2 hover:bg-red-50 rounded-lg transition-colors text-gray-400 hover:text-red-600"
+                  title="기록 삭제"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         ))}
