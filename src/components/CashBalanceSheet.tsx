@@ -33,6 +33,7 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
 
   // Inline Edit State
   const [editingRowIdx, setEditingRowIdx] = useState<number | null>(null);
+  const [editingField, setEditingField] = useState<'transferOut' | 'otherExpense' | null>(null);
   const [editOtherExpense, setEditOtherExpense] = useState<string>('');
   const [editExpenseType, setEditExpenseType] = useState<'plus' | 'minus'>('minus');
   const [editTransferOut, setEditTransferOut] = useState<string>('');
@@ -94,9 +95,13 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
     }));
   };
 
-  const handleEditClick = (idx: number) => {
-    const row = data.rows[idx];
+  const handleEditClick = (idx: number, field: 'transferOut' | 'otherExpense') => {
     setEditingRowIdx(idx);
+    setEditingField(field);
+    const row = data.rows[idx];
+    
+    setEditTransferOut(row.transferOut > 0 ? row.transferOut.toString() : '');
+    
     if (row.otherExpense < 0) {
       setEditExpenseType('plus');
       setEditOtherExpense(Math.abs(row.otherExpense).toString());
@@ -104,7 +109,6 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
       setEditExpenseType('minus');
       setEditOtherExpense(row.otherExpense.toString());
     }
-    setEditTransferOut(row.transferOut > 0 ? row.transferOut.toString() : '');
     setEditRemarks(row.remarks || '');
   };
 
@@ -126,6 +130,7 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
 
     recalculateData(newRows, data.carryover);
     setEditingRowIdx(null);
+    setEditingField(null);
   };
   
   const handleVerify = (idx: number) => {
@@ -230,8 +235,8 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
                   <td className="px-4 py-3 text-right border-r border-gray-50 font-mono font-bold text-emerald-600 bg-emerald-50/5 tabular-nums">
                     {row.income > 0 ? formatCurrency(row.income).replace('₩', '') : '-'}
                   </td>
-                  <td className="px-4 py-3 text-right border-r border-gray-50 font-mono text-rose-600 bg-rose-50/5 tabular-nums group-hover:bg-white transition-colors relative">
-                    {editingRowIdx === idx ? (
+                  <td className="px-4 py-3 text-right border-r border-gray-50 font-mono text-rose-600 bg-rose-50/5 tabular-nums group-hover:bg-white transition-colors relative group">
+                    {editingRowIdx === idx && editingField === 'transferOut' ? (
                       <input 
                         type="text" 
                         value={editTransferOut} 
@@ -240,11 +245,21 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
                         placeholder="금액"
                       />
                     ) : (
-                      row.transferOut > 0 ? formatCurrency(row.transferOut).replace('₩', '') : '-'
+                      <div className="flex items-center justify-end gap-2">
+                        {row.transferOut > 0 ? formatCurrency(row.transferOut).replace('₩', '') : '-'}
+                        {!isReadOnly && (
+                          <button 
+                            onClick={() => handleEditClick(idx, 'transferOut')} 
+                            className="p-1 text-rose-400 hover:bg-rose-50 rounded opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right border-r border-gray-50 font-mono bg-gray-50/30 tabular-nums group-hover:bg-white transition-colors relative">
-                    {editingRowIdx === idx ? (
+                    {editingRowIdx === idx && editingField === 'otherExpense' ? (
                       <div className="flex flex-col gap-1.5 min-w-[100px]">
                         <div className="flex items-center justify-end gap-1 bg-gray-100 p-0.5 rounded">
                           <button 
@@ -270,11 +285,14 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
                           "font-bold",
                           row.otherExpense > 0 ? "text-rose-600" : row.otherExpense < 0 ? "text-emerald-600" : "text-gray-400"
                         )}>
-                          {row.otherExpense > 0 ? formatCurrency(row.otherExpense).replace('₩', '') : row.otherExpense < 0 ? `+${formatCurrency(Math.abs(row.otherExpense)).replace('₩', '')}` : '-'}
+                          {row.otherExpense !== 0 ? (row.otherExpense < 0 ? '+' : '-') + formatCurrency(Math.abs(row.otherExpense)).replace('₩', '') : '-'}
                         </span>
                         {!isReadOnly && (
-                          <button onClick={() => handleEditClick(idx)} className="p-1 text-amber-500 hover:bg-amber-50 rounded opacity-0 group-hover:opacity-100 transition-all">
-                            <Edit2 className="w-3 h-3" />
+                          <button 
+                            onClick={() => handleEditClick(idx, 'otherExpense')} 
+                            className="p-1 text-gray-400 hover:bg-gray-100 rounded opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>
@@ -312,7 +330,7 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
                             </div>
                             {!isReadOnly && (
                               <button 
-                                onClick={() => handleEditClick(idx)} 
+                                onClick={() => handleEditClick(idx, 'otherExpense')} 
                                 className="p-1 text-amber-500 hover:bg-amber-50 rounded opacity-0 group-hover:opacity-100 transition-all shrink-0"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
@@ -328,7 +346,7 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
                             {!isReadOnly && (
                               <div className="flex items-center gap-2 shrink-0">
                                 <button 
-                                  onClick={() => handleEditClick(idx)} 
+                                  onClick={() => handleEditClick(idx, 'otherExpense')} 
                                   className="p-1 text-amber-500 hover:bg-amber-50 rounded opacity-0 group-hover:opacity-100 transition-all"
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
