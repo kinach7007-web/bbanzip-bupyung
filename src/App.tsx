@@ -1995,7 +1995,7 @@ export default function App() {
             })()}
           </div>
         ) : activeTab === 'cash' ? (
-          <CashBalanceSheet data={cashBalanceData} setData={handleSetCashBalanceData} user={user} />
+          <CashBalanceSheet data={cashBalanceData} setData={handleSetCashBalanceData} user={user} businessDateStr={businessDateStr} />
         ) : activeTab === 'pl' ? (
           <PLDashboard 
             user={user}

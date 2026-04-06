@@ -16,9 +16,10 @@ interface CashBalanceSheetProps {
   data: typeof CASH_BALANCE_DATA;
   setData: React.Dispatch<React.SetStateAction<typeof CASH_BALANCE_DATA>>;
   isReadOnly?: boolean;
+  businessDateStr?: string;
 }
 
-export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, setData, isReadOnly }) => {
+export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, setData, isReadOnly, businessDateStr }) => {
   const [tempBalanceInput, setTempBalanceInput] = useState(data.carryover.toString());
   const [isInputVisible, setIsInputVisible] = useState(data.carryover === 0);
 
@@ -34,6 +35,7 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
   const [editingRowIdx, setEditingRowIdx] = useState<number | null>(null);
   const [editOtherExpense, setEditOtherExpense] = useState<string>('');
   const [editExpenseType, setEditExpenseType] = useState<'plus' | 'minus'>('minus');
+  const [editTransferOut, setEditTransferOut] = useState<string>('');
   const [editRemarks, setEditRemarks] = useState<string>('');
 
   const handleSetBalance = () => {
@@ -102,6 +104,7 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
       setEditExpenseType('minus');
       setEditOtherExpense(row.otherExpense.toString());
     }
+    setEditTransferOut(row.transferOut > 0 ? row.transferOut.toString() : '');
     setEditRemarks(row.remarks || '');
   };
 
@@ -109,10 +112,12 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
     if (editingRowIdx === null) return;
     const val = parseInt(editOtherExpense.replace(/,/g, ''), 10) || 0;
     const finalOtherExpense = editExpenseType === 'minus' ? val : -val;
+    const transferOutVal = parseInt(editTransferOut.replace(/,/g, ''), 10) || 0;
 
     const newRows = [...data.rows];
     newRows[editingRowIdx] = {
       ...newRows[editingRowIdx],
+      transferOut: transferOutVal,
       otherExpense: finalOtherExpense,
       remarks: editRemarks,
       isVerified: false,
@@ -225,8 +230,18 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
                   <td className="px-4 py-3 text-right border-r border-gray-50 font-mono font-bold text-emerald-600 bg-emerald-50/5 tabular-nums">
                     {row.income > 0 ? formatCurrency(row.income).replace('₩', '') : '-'}
                   </td>
-                  <td className="px-4 py-3 text-right border-r border-gray-50 font-mono text-rose-600 bg-rose-50/5 tabular-nums">
-                    {row.transferOut > 0 ? formatCurrency(row.transferOut).replace('₩', '') : '-'}
+                  <td className="px-4 py-3 text-right border-r border-gray-50 font-mono text-rose-600 bg-rose-50/5 tabular-nums group-hover:bg-white transition-colors relative">
+                    {editingRowIdx === idx ? (
+                      <input 
+                        type="text" 
+                        value={editTransferOut} 
+                        onChange={e => setEditTransferOut(e.target.value.replace(/[^0-9]/g, ''))}
+                        className="w-full px-2 py-1 text-right text-xs border border-gray-300 rounded focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+                        placeholder="금액"
+                      />
+                    ) : (
+                      row.transferOut > 0 ? formatCurrency(row.transferOut).replace('₩', '') : '-'
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right border-r border-gray-50 font-mono bg-gray-50/30 tabular-nums group-hover:bg-white transition-colors relative">
                     {editingRowIdx === idx ? (

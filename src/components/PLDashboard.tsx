@@ -720,7 +720,7 @@ export function PLDashboard({
                       "flex flex-wrap gap-2 max-h-32 overflow-y-auto p-1 custom-scrollbar",
                       newExpense.category === '매출' && "grid grid-cols-3 w-full gap-2 overflow-visible max-h-none"
                     )}>
-                      {vendorList[newExpense.category]?.map((vendor) => (
+                      {(vendorList[newExpense.category] || []).filter(v => !(newExpense.category === '매출' && v === '계좌이체')).map((vendor) => (
                         <button
                           key={vendor}
                           type="button"
