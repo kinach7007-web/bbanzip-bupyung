@@ -613,6 +613,14 @@ export default function App() {
     }
   };
 
+  const handleSetCashBalanceData = (updater: React.SetStateAction<any>) => {
+    setCashBalanceData(prev => {
+      const nextState = typeof updater === 'function' ? updater(prev) : updater;
+      updateCashBalanceData(nextState);
+      return nextState;
+    });
+  };
+
   // Wrapper for setSalaryState to sync with Firestore
   const updateSalaryState = async (newData: SalaryState) => {
     if (!user) return;
@@ -621,6 +629,14 @@ export default function App() {
     } catch (e) {
       handleFirestoreError(e, OperationType.UPDATE, `salaryState/${currentMonth}`);
     }
+  };
+
+  const handleSetSalaryState = (updater: React.SetStateAction<SalaryState>) => {
+    setSalaryState(prev => {
+      const nextState = typeof updater === 'function' ? updater(prev) : updater;
+      updateSalaryState(nextState);
+      return nextState;
+    });
   };
 
   const handleDeleteArchive = (archive: MonthlyArchive) => {
@@ -1979,7 +1995,7 @@ export default function App() {
             })()}
           </div>
         ) : activeTab === 'cash' ? (
-          <CashBalanceSheet data={cashBalanceData} setData={setCashBalanceData} user={user} />
+          <CashBalanceSheet data={cashBalanceData} setData={handleSetCashBalanceData} user={user} />
         ) : activeTab === 'pl' ? (
           <PLDashboard 
             user={user}
@@ -2014,7 +2030,7 @@ export default function App() {
             user={user}
             currentMonth={currentMonth}
             salaryState={salaryState}
-            setSalaryState={setSalaryState}
+            setSalaryState={handleSetSalaryState}
           />
         ) : activeTab === 'users' ? (
           <UserManagement currentUser={user!} />
