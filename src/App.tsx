@@ -1413,9 +1413,9 @@ export default function App() {
   // Auto-reset app once for the admin
   useEffect(() => {
     const autoResetApp = async () => {
-      if (user?.email === 'kinach7007@gmail.com' && !localStorage.getItem('app_fully_reset_once_v4')) {
+      if (user?.email === 'kinach7007@gmail.com' && !localStorage.getItem('app_fully_reset_once_v6')) {
         try {
-          console.log("Auto-resetting app per admin request (v4)...");
+          console.log("Auto-resetting app per admin request (v6)...");
           const collectionsToDelete = ['transactions', 'cashBalanceData', 'salaryState', 'archives'];
           
           for (const collName of collectionsToDelete) {
@@ -1443,8 +1443,8 @@ export default function App() {
           }
           keysToRemove.forEach(key => localStorage.removeItem(key));
 
-          localStorage.setItem('app_fully_reset_once_v4', 'true');
-          console.log("App automatically reset to v4.");
+          localStorage.setItem('app_fully_reset_once_v6', 'true');
+          console.log("App automatically reset to v6.");
           alert("앱이 최신 버전으로 완전히 초기화되었습니다. 모든 데이터(거래내역, 시재, 급여, 보관함, 거래처 목록)가 기본값으로 복구되었습니다.");
           window.location.reload();
         } catch (e) {

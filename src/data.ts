@@ -108,22 +108,12 @@ export const PL_DATA = {
   ],
   vendors: {
     '매출': ['현금', '카드', '배달 정산 금액'],
-    '매출원가': [
-      '뼈(제일축산)', '우거지', '모자반(제주)', '참좋은식품', '프로축산(내장)', '곱창(CNK)', '오돌뼈(미트촌)',
-      '우리과일야채(조병윤)', '대형마트 & 부평시장', '편의점', '다이소', '쌀(병남형님)', 
-      '모노마트', '화미(다화에프앤비)', '웰빙나눔유통', '주유', '주류 원가', '음료 원가'
-    ],
+    '매출원가': [],
     '인건비': ['직원급여', '알바급여', '파출급여', '4대보험'],
-    '변동비': [
-      '가스비', '전기세', '상하수도요금', '썬주차장', 
-      '음식물처리', '인터넷 비품 결제'
-    ],
-    '마케팅': ['마케팅'],
-    '카드수수료(1.9%)': ['카드수수료'],
-    '고정비': [
-      '임대료', '화재보험', '캡스 (보안)', '노무사 수수료', '세무사 수수료', 
-      '카솔 (적립프로그램)', '인터넷/전화', '정수기'
-    ]
+    '변동비': [],
+    '마케팅': [],
+    '카드수수료(1.9%)': [],
+    '고정비': []
   }
 };
 
@@ -186,69 +176,6 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
     level: 1
   },
   {
-    id: '2-1-1',
-    category: '뼈(제일축산)',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-1-2',
-    category: '우거지',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-1-3',
-    category: '모자반(제주)',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-1-4',
-    category: '참좋은식품',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-1-5',
-    category: '프로축산(내장)',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-1-6',
-    category: '곱창(CNK)',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-1-7',
-    category: '오돌뼈(미트촌)',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
     id: '2-2',
     category: '2-2. 식자재&공산품',
     total: 0,
@@ -257,87 +184,6 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
     daily: Array(31).fill(0),
     isSubtotal: true,
     level: 1
-  },
-  {
-    id: '2-2-1',
-    category: '우리과일야채(조병윤)',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-2-2',
-    category: '대형마트 & 부평시장',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-2-3',
-    category: '편의점',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-2-4',
-    category: '다이소',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-2-5',
-    category: '쌀(병남형님)',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-2-6',
-    category: '모노마트',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-2-7',
-    category: '화미(다화에프앤비)',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-2-8',
-    category: '웰빙나눔유통',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-2-9',
-    category: '주유',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
   },
   {
     id: '2-3',
@@ -426,78 +272,6 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
     level: 0
   },
   {
-    id: '5-1',
-    category: '임대료',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
-    id: '5-2',
-    category: '화재보험',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
-    id: '5-3',
-    category: '캡스',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
-    id: '5-4',
-    category: '노무사',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
-    id: '5-5',
-    category: '세무사',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
-    id: '5-6',
-    category: '카드(적립프로그램)',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
-    id: '5-7',
-    category: '인터넷/전화',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
-    id: '5-8',
-    category: '정수기',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
     id: '6',
     category: '6. 변동비',
     total: 0,
@@ -506,69 +280,6 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
     daily: Array(31).fill(0),
     isHeader: true,
     level: 0
-  },
-  {
-    id: '6-1',
-    category: '가스비',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
-    id: '6-2',
-    category: '전기세',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
-    id: '6-3',
-    category: '상하수도요금',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
-    id: '6-4',
-    category: '썬주차장',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
-    id: '6-5',
-    category: '음식물처리',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
-    id: '6-6',
-    category: '인터넷 비품 결제',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
-  },
-  {
-    id: '6-7',
-    category: '기타 변동비',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 1
   },
   {
     id: '7',
