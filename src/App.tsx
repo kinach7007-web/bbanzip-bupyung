@@ -885,8 +885,8 @@ export default function App() {
                 if (vendorIndex !== -1) {
                   // Determine which subgroup the vendor belongs to
                   // In P&L, vendors are mapped to 2-1 (Meat) or 2-2 (Food) based on their position
-                  // But wait, P&L maps ALL vendors in vendorList['매출원가'] to 2-2-X!
-                  // Let's check PLDashboard.tsx again.
+                  // Since we removed replaceChildrenWithVendors for 2-2, this dynamic mapping is no longer used for COGS in P&L.
+                  // However, we'll keep it for fallback purposes just in case.
                   matchingRowId = `2-2-${vendorIndex + 1}`;
                 }
               }
