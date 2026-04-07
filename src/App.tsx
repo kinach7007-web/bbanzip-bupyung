@@ -885,8 +885,7 @@ export default function App() {
                 if (vendorIndex !== -1) {
                   // Determine which subgroup the vendor belongs to
                   // In P&L, vendors are mapped to 2-1 (Meat) or 2-2 (Food) based on their position
-                  // Since we removed replaceChildrenWithVendors for 2-2, this dynamic mapping is no longer used for COGS in P&L.
-                  // However, we'll keep it for fallback purposes just in case.
+                  // This dynamic mapping is used as a fallback for the P&L dashboard.
                   matchingRowId = `2-2-${vendorIndex + 1}`;
                 }
               }
@@ -1401,9 +1400,9 @@ export default function App() {
   // Auto-reset app once for the admin
   useEffect(() => {
     const autoResetApp = async () => {
-      if (user?.email === 'kinach7007@gmail.com' && !localStorage.getItem('app_fully_reset_once_v2')) {
+      if (user?.email === 'kinach7007@gmail.com' && !localStorage.getItem('app_fully_reset_once_v3')) {
         try {
-          console.log("Auto-resetting app per admin request...");
+          console.log("Auto-resetting app per admin request (v3)...");
           const collectionsToDelete = ['transactions', 'cashBalanceData', 'salaryState', 'archives'];
           
           for (const collName of collectionsToDelete) {
@@ -1415,6 +1414,11 @@ export default function App() {
               await batch.commit();
             }
           }
+
+          // Also reset global settings to default vendor list
+          await setDoc(doc(db, 'settings', 'global'), {
+            vendorList: PL_DATA.vendors
+          });
           
           // Clear local storage keys related to the app
           const keysToRemove: string[] = [];
@@ -1426,9 +1430,9 @@ export default function App() {
           }
           keysToRemove.forEach(key => localStorage.removeItem(key));
 
-          localStorage.setItem('app_fully_reset_once_v2', 'true');
-          console.log("App automatically reset.");
-          alert("요청하신 대로 앱의 모든 데이터(거래내역, 시재, 급여, 보관함)가 완전히 초기화되었습니다!");
+          localStorage.setItem('app_fully_reset_once_v3', 'true');
+          console.log("App automatically reset to v3.");
+          alert("앱이 최신 버전으로 완전히 초기화되었습니다. 모든 데이터(거래내역, 시재, 급여, 보관함, 거래처 목록)가 기본값으로 복구되었습니다.");
           window.location.reload();
         } catch (e) {
           console.error("Failed to reset app:", e);
