@@ -892,7 +892,20 @@ export default function App() {
 
               // Fallback logic
               if (!matchingRowId) {
-                matchingRowId = '2-2-2'; // Default fallback for COGS is 모아상사(공산품)
+                // Try to find a generic "Other" or "Miscellaneous" row in COGS
+                const otherRow = DAILY_LEDGER_DATA.find(r => 
+                  r.id.startsWith('2-') && 
+                  (r.category.includes('기타') || r.category.includes('소모품')) &&
+                  !r.isHeader && !r.isSubtotal
+                );
+                if (otherRow) {
+                  matchingRowId = otherRow.id;
+                } else {
+                  // If no generic row, use the first child of the appropriate subgroup
+                  const subgroupId = t.name.includes('육류') || t.name.includes('고기') ? '2-1' : '2-2';
+                  const firstChild = DAILY_LEDGER_DATA.find(r => r.id.startsWith(subgroupId + '-') && !r.isSubtotal);
+                  if (firstChild) matchingRowId = firstChild.id;
+                }
               }
 
               // Now check if this transaction belongs to the current KPI detail
@@ -1400,9 +1413,9 @@ export default function App() {
   // Auto-reset app once for the admin
   useEffect(() => {
     const autoResetApp = async () => {
-      if (user?.email === 'kinach7007@gmail.com' && !localStorage.getItem('app_fully_reset_once_v3')) {
+      if (user?.email === 'kinach7007@gmail.com' && !localStorage.getItem('app_fully_reset_once_v4')) {
         try {
-          console.log("Auto-resetting app per admin request (v3)...");
+          console.log("Auto-resetting app per admin request (v4)...");
           const collectionsToDelete = ['transactions', 'cashBalanceData', 'salaryState', 'archives'];
           
           for (const collName of collectionsToDelete) {
@@ -1430,8 +1443,8 @@ export default function App() {
           }
           keysToRemove.forEach(key => localStorage.removeItem(key));
 
-          localStorage.setItem('app_fully_reset_once_v3', 'true');
-          console.log("App automatically reset to v3.");
+          localStorage.setItem('app_fully_reset_once_v4', 'true');
+          console.log("App automatically reset to v4.");
           alert("앱이 최신 버전으로 완전히 초기화되었습니다. 모든 데이터(거래내역, 시재, 급여, 보관함, 거래처 목록)가 기본값으로 복구되었습니다.");
           window.location.reload();
         } catch (e) {

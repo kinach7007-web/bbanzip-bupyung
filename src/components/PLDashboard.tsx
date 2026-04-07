@@ -108,9 +108,54 @@ export function PLDashboard({
       data.splice(newInsertIndex + 1, 0, ...newRows);
     };
 
+    // Helper to merge dynamic vendors with static rows
+    const mergeVendorsWithStaticRows = (parentId: string, categoryName: string) => {
+      const vendors = vendorList[categoryName] || [];
+      if (vendors.length === 0) return;
+
+      const parentIndex = data.findIndex(r => r.id === parentId);
+      if (parentIndex === -1) return;
+
+      // Find existing children IDs to avoid duplicates
+      const existingChildren = data.filter(r => r.id.startsWith(parentId + '-') && r.id !== parentId);
+      const existingNames = existingChildren.map(r => r.category.replace(/^[0-9.-]+\s*/, '').trim());
+
+      // Add new vendors that are not already in the list
+      const newVendors = vendors.filter(v => {
+        const cleanV = v.replace(/^[0-9.-]+\s*/, '').trim();
+        return !existingNames.includes(cleanV) && cleanV !== '';
+      });
+
+      if (newVendors.length === 0) return;
+
+      // Find the last child to insert after
+      let lastChildIndex = parentIndex;
+      for (let i = parentIndex + 1; i < data.length; i++) {
+        if (data[i].id.startsWith(parentId + '-')) {
+          lastChildIndex = i;
+        } else {
+          break;
+        }
+      }
+
+      const newRows = newVendors.map((vendor, idx) => ({
+        id: `${parentId}-${existingChildren.length + idx + 1}`,
+        category: vendor,
+        total: 0,
+        ratio: 0,
+        remarks: '',
+        daily: Array(31).fill(0),
+        level: 2
+      }));
+
+      data.splice(lastChildIndex + 1, 0, ...newRows);
+    };
+
 
     replaceChildrenWithVendors('5', '고정비');
     replaceChildrenWithVendors('6', '변동비');
+    mergeVendorsWithStaticRows('2-1', '매출원가');
+    mergeVendorsWithStaticRows('2-2', '매출원가');
 
     // Replace 마케팅 (7) - Make it a header and add children
     const marketingVendors = vendorList['마케팅'] || [];
@@ -211,14 +256,35 @@ export function PLDashboard({
         }
         else if (t.category === '세금') parentId = '9';
         
+        // 1. Try exact match first (including dynamic vendors)
+        const cleanTName = t.name.trim();
+        const cleanTNameNoPrefix = cleanTName.replace(/^[0-9.-]+\s*/, '').trim();
+
+        let matchingRow = data.find(row => {
+          if (row.isHeader) return false;
+          const cleanRowName = row.category.replace(/^[0-9.-]+\s*/, '').trim();
+          return cleanRowName === cleanTNameNoPrefix || row.category === cleanTName;
+        });
+
+        if (matchingRow) {
+          matchingRow.daily[day - 1] = (matchingRow.daily[day - 1] || 0) + t.amount;
+          return;
+        }
+
+        // 2. If no exact match, use fallback
         const otherRow = data.find(r => 
           r.id.startsWith(parentId) && 
-          (r.category.includes('기타') || r.category.includes('공산품') || r.category.includes('원자재')) &&
+          (r.category.includes('기타') || r.category.includes('소모품')) &&
           !r.isHeader && !r.isSubtotal
         );
         
         if (otherRow) {
           otherRow.daily[day - 1] = (otherRow.daily[day - 1] || 0) + t.amount;
+        } else if (parentId === '2') {
+          // For COGS, if no generic "Other" row, use the first child of the subgroup
+          const subgroupId = t.name.includes('육류') || t.name.includes('고기') ? '2-1' : '2-2';
+          const fallbackRow = data.find(r => r.id.startsWith(subgroupId + '-') && !r.isSubtotal);
+          if (fallbackRow) fallbackRow.daily[day - 1] = (fallbackRow.daily[day - 1] || 0) + t.amount;
         }
       }
     });
