@@ -108,22 +108,6 @@ export function PLDashboard({
       data.splice(newInsertIndex + 1, 0, ...newRows);
     };
 
-    // Replace 매출원가 (2) - Flatten it and remove 2-1 and 2-2
-    const cogsVendors = vendorList['매출원가'] || [];
-    if (cogsVendors.length > 0) {
-      data = data.filter(r => !(r.id.startsWith('2-') && r.id !== '2'));
-      const newRows = cogsVendors.map((vendor, idx) => ({
-        id: `2-${idx + 1}`,
-        category: vendor,
-        total: 0,
-        ratio: 0,
-        remarks: '',
-        daily: Array(31).fill(0),
-        level: 1
-      }));
-      const insertIndex = data.findIndex(r => r.id === '2');
-      data.splice(insertIndex + 1, 0, ...newRows);
-    }
 
     replaceChildrenWithVendors('5', '고정비');
     replaceChildrenWithVendors('6', '변동비');
@@ -181,6 +165,7 @@ export function PLDashboard({
       if (day < 1 || day > 31) return;
 
       const cleanTName = t.name.trim();
+      if (cleanTName === '계좌이체') return;
       
       // Find matching leaf row or subtotal row
       let matchingRow = data.find(row => {
@@ -228,7 +213,7 @@ export function PLDashboard({
         
         const otherRow = data.find(r => 
           r.id.startsWith(parentId) && 
-          (r.category.includes('기타') || r.category.includes('공산품')) &&
+          (r.category.includes('기타') || r.category.includes('공산품') || r.category.includes('원자재')) &&
           !r.isHeader && !r.isSubtotal
         );
         
@@ -469,7 +454,7 @@ export function PLDashboard({
                     "sticky left-0 z-10 px-1.5 md:px-4 py-2 md:py-3 text-[9px] md:text-xs border-r border-gray-200",
                     row.isHeader ? "bg-gray-100 text-gray-900" : "bg-white group-hover:bg-gray-50 text-gray-600",
                     row.id === '7' && "bg-gray-100 text-gray-900 font-bold",
-                    (row.category.includes('[육류 및 육수 재료]') || row.category.includes('[식자재&공산품 소계]')) && "bg-amber-100/80",
+                    (row.id === '2-1' || row.id === '2-2') && "bg-amber-100/80",
                     row.level === 1 && "pl-3 md:pl-8",
                     row.level === 2 && "pl-5 md:pl-12"
                   )}>
@@ -479,7 +464,7 @@ export function PLDashboard({
                     "sticky left-[90px] md:left-[200px] z-10 px-1.5 md:px-4 py-2 md:py-3 text-[9px] md:text-xs font-mono text-right border-r border-gray-200 whitespace-nowrap",
                     row.isHeader ? "bg-gray-100 text-gray-900" : "bg-white group-hover:bg-gray-50 text-gray-700",
                     row.id === '7' && "bg-gray-100 text-gray-900 font-bold",
-                    (row.category.includes('[육류 및 육수 재료]') || row.category.includes('[식자재&공산품 소계]')) && "bg-amber-100/80"
+                    (row.id === '2-1' || row.id === '2-2') && "bg-amber-100/80"
                   )}>
                     {formatCurrency(row.total)}
                   </td>
@@ -487,7 +472,7 @@ export function PLDashboard({
                     "hidden md:table-cell sticky left-[320px] z-10 px-4 py-3 text-xs font-mono text-right border-r border-gray-200",
                     row.isHeader ? "bg-gray-100 text-gray-900" : "bg-white group-hover:bg-gray-50 text-gray-500",
                     row.id === '7' && "bg-gray-100 text-gray-900 font-bold",
-                    (row.category.includes('[육류 및 육수 재료]') || row.category.includes('[식자재&공산품 소계]')) && "bg-amber-100/80"
+                    (row.id === '2-1' || row.id === '2-2') && "bg-amber-100/80"
                   )}>
                     {row.ratio}%
                   </td>

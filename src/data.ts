@@ -43,8 +43,8 @@ export const PL_DATA = {
       amount: 0, 
       ratio: 0,
       details: [
-        { name: "[육류 및 육수 재료]", amount: 0, ratio: 0 },
-        { name: "[식자재&공산품 소계]", amount: 0, ratio: 0 },
+        { name: "2-1. 원자재(육류)", amount: 0, ratio: 0 },
+        { name: "2-2. 식자재&공산품", amount: 0, ratio: 0 },
         { name: "주류 원가", amount: 0, ratio: 0 },
         { name: "음료 원가", amount: 0, ratio: 0 },
       ]
@@ -110,7 +110,7 @@ export const PL_DATA = {
     '매출': ['현금', '카드', '배달 정산 금액'],
     '매출원가': [
       '뼈(제일축산)', '우거지', '모자반(제주)', '참좋은식품', '프로축산(내장)', '곱창(CNK)', '오돌뼈(미트촌)',
-      '우리과일야채(조병윤)', '모아상사(공산품)', '대형마트 & 부평시장', '편의점', '다이소', '쌀(병남형님)', 
+      '우리과일야채(조병윤)', '대형마트 & 부평시장', '편의점', '다이소', '쌀(병남형님)', 
       '모노마트', '화미(다화에프앤비)', '웰빙나눔유통', '주유', '주류 원가', '음료 원가'
     ],
     '인건비': ['직원급여', '알바급여', '파출급여', '4대보험'],
@@ -177,7 +177,7 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
   },
   {
     id: '2-1',
-    category: '[육류 및 육수 재료]',
+    category: '2-1. 원자재(육류)',
     total: 0,
     ratio: 0,
     remarks: '',
@@ -250,7 +250,7 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
   },
   {
     id: '2-2',
-    category: '[식자재&공산품 소계]',
+    category: '2-2. 식자재&공산품',
     total: 0,
     ratio: 0,
     remarks: '',
@@ -269,15 +269,6 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
   },
   {
     id: '2-2-2',
-    category: '모아상사(공산품)',
-    total: 0,
-    ratio: 0,
-    remarks: '',
-    daily: Array(31).fill(0),
-    level: 2
-  },
-  {
-    id: '2-2-3',
     category: '대형마트 & 부평시장',
     total: 0,
     ratio: 0,
@@ -286,7 +277,7 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
     level: 2
   },
   {
-    id: '2-2-4',
+    id: '2-2-3',
     category: '편의점',
     total: 0,
     ratio: 0,
@@ -295,7 +286,7 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
     level: 2
   },
   {
-    id: '2-2-5',
+    id: '2-2-4',
     category: '다이소',
     total: 0,
     ratio: 0,
@@ -304,7 +295,7 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
     level: 2
   },
   {
-    id: '2-2-6',
+    id: '2-2-5',
     category: '쌀(병남형님)',
     total: 0,
     ratio: 0,
@@ -313,7 +304,7 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
     level: 2
   },
   {
-    id: '2-2-7',
+    id: '2-2-6',
     category: '모노마트',
     total: 0,
     ratio: 0,
@@ -322,7 +313,7 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
     level: 2
   },
   {
-    id: '2-2-8',
+    id: '2-2-7',
     category: '화미(다화에프앤비)',
     total: 0,
     ratio: 0,
@@ -331,7 +322,7 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
     level: 2
   },
   {
-    id: '2-2-9',
+    id: '2-2-8',
     category: '웰빙나눔유통',
     total: 0,
     ratio: 0,
@@ -340,7 +331,7 @@ export const DAILY_LEDGER_DATA: LedgerRow[] = [
     level: 2
   },
   {
-    id: '2-2-10',
+    id: '2-2-9',
     category: '주유',
     total: 0,
     ratio: 0,

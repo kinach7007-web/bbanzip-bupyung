@@ -55,7 +55,7 @@ import {
   collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, writeBatch, terminate, getDocFromServer,
   type FirebaseUser 
 } from './firebase';
-import { PL_DATA, KPI_DATA, CASH_BALANCE_DATA } from './data';
+import { PL_DATA, KPI_DATA, CASH_BALANCE_DATA, DAILY_LEDGER_DATA } from './data';
 import { PLDashboard } from './components/PLDashboard';
 import { KPIDashboard } from './components/KPIDashboard';
 import { CashBalanceSheet } from './components/CashBalanceSheet';
@@ -760,24 +760,14 @@ export default function App() {
           month: currentMonth
         });
       }
-      if (row.transferOut > 0) {
-        generated.push({
-          id: `cash-transfer-${dayNum}`,
-          date: dateStr,
-          category: '매출',
-          name: '계좌이체',
-          amount: row.transferOut,
-          month: currentMonth
-        });
-      }
     });
     return generated;
-  }, [cashBalanceData.rows]);
+  }, [cashBalanceData.rows, currentMonth]);
 
   const allTransactions = useMemo(() => [...transactions, ...cashTransactions], [transactions, cashTransactions]);
 
   const currentTotalSales = useMemo(() => {
-    const salesTransactions = allTransactions.filter(t => t.category === '매출');
+    const salesTransactions = allTransactions.filter(t => t.category === '매출' && t.name !== '계좌이체');
     const additionalSales = salesTransactions.reduce((sum, t) => sum + t.amount, 0);
     return PL_DATA.summary.totalSales + additionalSales;
   }, [allTransactions]);
@@ -800,6 +790,7 @@ export default function App() {
 
   const currentExpenses = useMemo(() => {
     const baseExpenses = [...PL_DATA.expenses];
+    const filteredTransactions = allTransactions.filter(t => t.name !== '계좌이체');
     
     // Add new transactions to categories and their details
     const updatedExpenses = baseExpenses.map(cat => {
@@ -843,12 +834,12 @@ export default function App() {
         };
       }
 
-      const catTransactions = allTransactions.filter(t => t.category === cat.name);
+      const catTransactions = filteredTransactions.filter(t => t.category === cat.name);
       let additionalAmount = catTransactions.reduce((sum, t) => sum + t.amount, 0);
       
       // Special handling for Card Fees - Automatic calculation
       if (cat.name === '카드수수료(1.9%)') {
-        const cardSales = allTransactions
+        const cardSales = filteredTransactions
           .filter(t => t.category === '매출' && t.name === '카드')
           .reduce((sum, t) => sum + t.amount, 0);
         const autoCardFees = cardSales * 0.019;
@@ -858,23 +849,85 @@ export default function App() {
       let updatedDetails = cat.details;
 
       if (['매출원가', '변동비', '마케팅', '고정비'].includes(cat.name)) {
-        const vendors = vendorList[cat.name] || [];
-        updatedDetails = vendors.map(vendor => {
-          const detailTransactions = allTransactions.filter(t => t.category === cat.name && t.name === vendor);
+        updatedDetails = cat.details?.map(detail => {
+          let detailTransactions = [];
+          if (cat.name === '매출원가') {
+            // Replicate P&L mapping logic exactly
+            const cleanTName = (t: any) => t.name.trim();
+            const cleanTNameNoPrefix = (t: any) => cleanTName(t).replace(/^[0-9.-]+\s*/, '').trim();
+
+            // 1. Determine target row ID for each transaction
+            detailTransactions = filteredTransactions.filter(t => {
+              if (t.category !== '매출원가' || t.name === '계좌이체') return false;
+
+              // Find matching row in DAILY_LEDGER_DATA or dynamic vendor list
+              const tName = cleanTName(t);
+              const tNameNoPrefix = cleanTNameNoPrefix(t);
+
+              // Check if it matches a specific row name
+              let matchingRowId = '';
+              
+              // Check static rows
+              const staticMatch = DAILY_LEDGER_DATA.find(row => {
+                if (row.isHeader) return false;
+                const cleanRowName = row.category.replace(/^[0-9.-]+\s*/, '').trim();
+                return cleanRowName === tNameNoPrefix || row.category === tName;
+              });
+              if (staticMatch) matchingRowId = staticMatch.id;
+
+              // Check dynamic vendors (this is how P&L maps them)
+              if (!matchingRowId) {
+                const vendors = vendorList['매출원가'] || [];
+                const vendorIndex = vendors.findIndex(v => {
+                  const cleanV = v.replace(/^[0-9.-]+\s*/, '').trim();
+                  return cleanV === tNameNoPrefix || v === tName;
+                });
+                if (vendorIndex !== -1) {
+                  // Determine which subgroup the vendor belongs to
+                  // In P&L, vendors are mapped to 2-1 (Meat) or 2-2 (Food) based on their position
+                  // But wait, P&L maps ALL vendors in vendorList['매출원가'] to 2-2-X!
+                  // Let's check PLDashboard.tsx again.
+                  matchingRowId = `2-2-${vendorIndex + 1}`;
+                }
+              }
+
+              // Fallback logic
+              if (!matchingRowId) {
+                matchingRowId = '2-2-2'; // Default fallback for COGS is 모아상사(공산품)
+              }
+
+              // Now check if this transaction belongs to the current KPI detail
+              if (detail.name === '2-1. 원자재(육류)') {
+                return matchingRowId.startsWith('2-1');
+              } else if (detail.name === '2-2. 식자재&공산품') {
+                return matchingRowId.startsWith('2-2');
+              } else if (detail.name === '주류 원가') {
+                return matchingRowId === '2-3';
+              } else if (detail.name === '음료 원가') {
+                return matchingRowId === '2-4';
+              }
+              return false;
+            });
+          } else {
+            detailTransactions = filteredTransactions.filter(t => t.category === cat.name && t.name === detail.name);
+          }
           const amount = detailTransactions.reduce((sum, t) => sum + t.amount, 0);
-          return { name: vendor, amount, ratio: 0 };
-        });
+          return { ...detail, amount, ratio: 0 };
+        }) || [];
         
-        // Add any transactions that have a name NOT in the vendor list
-        const unknownTransactions = allTransactions.filter(t => t.category === cat.name && !vendors.includes(t.name));
-        if (unknownTransactions.length > 0) {
-          const unknownAmount = unknownTransactions.reduce((sum, t) => sum + t.amount, 0);
-          updatedDetails.push({ name: '기타/삭제된 거래처', amount: unknownAmount, ratio: 0 });
+        // Add any transactions that have a name NOT in the detail list (except for COGS which has a catch-all)
+        if (cat.name !== '매출원가') {
+          const detailNames = cat.details?.map(d => d.name) || [];
+          const unknownTransactions = filteredTransactions.filter(t => t.category === cat.name && !detailNames.includes(t.name));
+          if (unknownTransactions.length > 0) {
+            const unknownAmount = unknownTransactions.reduce((sum, t) => sum + t.amount, 0);
+            updatedDetails.push({ name: '기타/삭제된 거래처', amount: unknownAmount, ratio: 0 });
+          }
         }
       } else {
         // For other categories (like 매출, 카드수수료), keep existing logic or just use existing details
         updatedDetails = cat.details?.map(detail => {
-          const detailTransactions = allTransactions.filter(t => t.category === cat.name && t.name === detail.name);
+          const detailTransactions = filteredTransactions.filter(t => t.category === cat.name && t.name === detail.name);
           const detailAdditionalAmount = detailTransactions.reduce((sum, t) => sum + t.amount, 0);
           return {
             ...detail,
@@ -883,9 +936,15 @@ export default function App() {
         });
       }
 
+      // If we have details, the total should be the sum of details. 
+      // Otherwise, use additionalAmount (which handles categories without details like Card Fees)
+      const totalAmount = (updatedDetails && updatedDetails.length > 0)
+        ? updatedDetails.reduce((sum, d) => sum + d.amount, 0)
+        : additionalAmount;
+
       return {
         ...cat,
-        amount: cat.amount + additionalAmount,
+        amount: totalAmount,
         details: updatedDetails
       };
     });
@@ -1886,7 +1945,9 @@ export default function App() {
                           ...cat,
                           amount,
                           details: cat.details?.map(detail => {
-                            const detailTransactions = catTransactions.filter((t: any) => t.name === detail.name);
+                            const detailName = detail.name === '2-1. 원자재(육류)' ? '[육류 및 육수 재료]' : 
+                                               detail.name === '2-2. 식자재&공산품' ? '[식자재&공산품 소계]' : detail.name;
+                            const detailTransactions = catTransactions.filter((t: any) => t.name === detailName);
                             return { ...detail, amount: detailTransactions.reduce((sum: number, t: any) => sum + t.amount, 0) };
                           })
                         };
@@ -1973,7 +2034,9 @@ export default function App() {
                           ...cat,
                           amount,
                           details: cat.details?.map(detail => {
-                            const detailTransactions = catTransactions.filter((t: any) => t.name === detail.name);
+                            const detailName = detail.name === '2-1. 원자재(육류)' ? '[육류 및 육수 재료]' : 
+                                               detail.name === '2-2. 식자재&공산품' ? '[식자재&공산품 소계]' : detail.name;
+                            const detailTransactions = catTransactions.filter((t: any) => t.name === detailName);
                             return { ...detail, amount: detailTransactions.reduce((sum: number, t: any) => sum + t.amount, 0) };
                           })
                         };

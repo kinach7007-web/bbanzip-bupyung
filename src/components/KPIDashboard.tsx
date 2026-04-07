@@ -77,8 +77,8 @@ export function KPIDashboard({ currentSummary, currentExpenses, archives = [], i
 
     const detailItems = [
       { item: '1.매출액', subItem: '', targetRatio: 100.0, actualAmount: currentSummary.totalSales, level: 0 },
-      { item: '매출원가', subItem: '원자재(육류)', targetRatio: 19.5, actualAmount: getDetailAmount('매출원가', '[육류 및 육수 재료]'), level: 1 },
-      { item: '', subItem: '식자재&공산품', targetRatio: 9.5, actualAmount: getDetailAmount('매출원가', '[식자재&공산품 소계]'), level: 1 },
+      { item: '매출원가', subItem: '2-1. 원자재(육류)', targetRatio: 19.5, actualAmount: getDetailAmount('매출원가', '2-1. 원자재(육류)'), level: 1 },
+      { item: '', subItem: '2-2. 식자재&공산품', targetRatio: 9.5, actualAmount: getDetailAmount('매출원가', '2-2. 식자재&공산품'), level: 1 },
       { item: '', subItem: '주류/음료', targetRatio: 3.0, actualAmount: liquorBeverageTotal, level: 1 },
       { item: '2.매출원가 소계', subItem: '', targetRatio: 32.0, actualAmount: currentSummary.cogs, level: 0, isSubtotal: true },
       { item: '1)인건비', subItem: '', targetRatio: 25.0, actualAmount: currentSummary.labor, level: 1 },
