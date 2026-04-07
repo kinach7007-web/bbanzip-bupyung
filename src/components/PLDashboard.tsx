@@ -306,6 +306,24 @@ export function PLDashboard({
       row.ratio = Number(((row.total / totalSales) * 100).toFixed(1));
     });
 
+    // CRITICAL: Force ensure '모아상사(공산품)' exists and is in the right place
+    const moaExists = data.some(r => r.id === '2-2-2');
+    if (!moaExists) {
+      console.warn("Forcing '모아상사(공산품)' back into the ledger data.");
+      const parentIndex = data.findIndex(r => r.id === '2-2');
+      if (parentIndex !== -1) {
+        data.splice(parentIndex + 2, 0, {
+          id: '2-2-2',
+          category: '모아상사(공산품)',
+          total: 0,
+          ratio: 0,
+          remarks: '',
+          daily: Array(31).fill(0),
+          level: 2
+        });
+      }
+    }
+
     return data;
   }, [transactions, vendorList, salaryBreakdown, currentMonth]);
 
