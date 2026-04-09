@@ -173,7 +173,7 @@ const formatCompactNumber = (value: number) => {
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1'];
 
-type TransactionCategory = '매출' | '매출원가' | '2-1. 원자재(육류)' | '2-2. 식자재&공산품' | '인건비' | '변동비' | '고정비' | '마케팅' | '세금' | '카드수수료(1.9%)';
+type TransactionCategory = '매출' | '매출원가' | '주류&음료' | '2-1. 원자재(육류)' | '2-2. 식자재&공산품' | '인건비' | '변동비' | '고정비' | '마케팅' | '세금' | '카드수수료(1.9%)';
 
 interface Transaction {
   id: string;
@@ -858,7 +858,7 @@ export default function App() {
 
             // 1. Determine target row ID for each transaction
             detailTransactions = filteredTransactions.filter(t => {
-              if (!['매출원가', '2-1. 원자재(육류)', '2-2. 식자재&공산품'].includes(t.category) || t.name === '계좌이체') return false;
+              if (!['매출원가', '주류&음료', '2-1. 원자재(육류)', '2-2. 식자재&공산품'].includes(t.category) || t.name === '계좌이체') return false;
 
               // Find matching row in DAILY_LEDGER_DATA or dynamic vendor list
               const tName = cleanTName(t);
@@ -867,28 +867,40 @@ export default function App() {
               // Check if it matches a specific row name
               let matchingRowId = '';
               
+              if (t.category === '주류&음료') {
+                if (tName.includes('주류')) matchingRowId = '2-3';
+                else if (tName.includes('음료')) matchingRowId = '2-4';
+              }
+
               // Check static rows
-              const staticMatch = DAILY_LEDGER_DATA.find(row => {
-                if (row.isHeader) return false;
-                const cleanRowName = row.category.replace(/^[0-9.-]+\s*/, '').trim();
-                return cleanRowName === tNameNoPrefix || row.category === tName;
-              });
-              if (staticMatch) matchingRowId = staticMatch.id;
+              if (!matchingRowId) {
+                const staticMatch = DAILY_LEDGER_DATA.find(row => {
+                  if (row.isHeader) return false;
+                  const cleanRowName = row.category.replace(/^[0-9.-]+\s*/, '').trim().replace(/\s+/g, '');
+                  const cleanTNameCompare = tNameNoPrefix.replace(/\s+/g, '');
+                  return cleanRowName === cleanTNameCompare || row.category.replace(/\s+/g, '') === tName.replace(/\s+/g, '');
+                });
+                if (staticMatch) matchingRowId = staticMatch.id;
+              }
 
               // Check dynamic vendors (this is how P&L maps them)
               if (!matchingRowId) {
                 // Check all possible COGS vendor lists
-                const cogsCategories = ['매출원가', '2-1. 원자재(육류)', '2-2. 식자재&공산품'];
+                const cogsCategories = ['매출원가', '주류&음료', '2-1. 원자재(육류)', '2-2. 식자재&공산품'];
                 for (const catKey of cogsCategories) {
                   const vendors = vendorList[catKey] || [];
                   const vendorIndex = vendors.findIndex(v => {
-                    const cleanV = v.replace(/^[0-9.-]+\s*/, '').trim();
-                    return cleanV === tNameNoPrefix || v === tName;
+                    const cleanV = v.replace(/^[0-9.-]+\s*/, '').trim().replace(/\s+/g, '');
+                    return cleanV === tNameNoPrefix.replace(/\s+/g, '') || v.replace(/\s+/g, '') === tName.replace(/\s+/g, '');
                   });
                   if (vendorIndex !== -1) {
                     // Determine which subgroup the vendor belongs to
-                    const subgroupId = catKey === '2-1. 원자재(육류)' ? '2-1' : '2-2';
-                    matchingRowId = `${subgroupId}-${vendorIndex + 1}`;
+                    if (catKey === '주류&음료') {
+                      matchingRowId = vendors[vendorIndex].includes('주류') ? '2-3' : '2-4';
+                    } else {
+                      const subgroupId = catKey === '2-1. 원자재(육류)' ? '2-1' : '2-2';
+                      matchingRowId = `${subgroupId}-${vendorIndex + 1}`;
+                    }
                     break;
                   }
                 }
@@ -1417,9 +1429,9 @@ export default function App() {
   // Auto-reset app once for the admin
   useEffect(() => {
     const autoResetApp = async () => {
-      if (user?.email === 'kinach7007@gmail.com' && !localStorage.getItem('app_fully_reset_once_v8')) {
+      if (user?.email === 'kinach7007@gmail.com' && !localStorage.getItem('app_fully_reset_once_v9')) {
         try {
-          console.log("Auto-resetting app per admin request (v8)...");
+          console.log("Auto-resetting app per admin request (v9)...");
           const collectionsToDelete = ['transactions', 'cashBalanceData', 'salaryState', 'archives'];
           
           for (const collName of collectionsToDelete) {
@@ -1447,8 +1459,8 @@ export default function App() {
           }
           keysToRemove.forEach(key => localStorage.removeItem(key));
 
-          localStorage.setItem('app_fully_reset_once_v8', 'true');
-          console.log("App automatically reset to v8.");
+          localStorage.setItem('app_fully_reset_once_v9', 'true');
+          console.log("App automatically reset to v9.");
           alert("앱이 최신 버전으로 완전히 초기화되었습니다. 모든 데이터(거래내역, 시재, 급여, 보관함, 거래처 목록)가 기본값으로 복구되었습니다.");
           window.location.reload();
         } catch (e) {

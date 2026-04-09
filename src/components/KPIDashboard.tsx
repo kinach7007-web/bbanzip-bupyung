@@ -51,10 +51,10 @@ export function KPIDashboard({ currentSummary, currentExpenses, archives = [], i
       { category: '매출액', targetRatio: 100.0, actualAmount: currentSummary.totalSales },
       { category: '매출원가', targetRatio: 32.0, actualAmount: currentSummary.cogs },
       { category: '관리비', targetRatio: 43.0, actualAmount: currentSummary.labor + currentSummary.rent + currentSummary.fixedCosts + currentSummary.variableCosts + currentSummary.marketingCosts },
-      { category: '세금 및 투자비', targetRatio: 7.0, actualAmount: currentSummary.taxes },
+      { category: '세금 및 카드수수료', targetRatio: 8.9, actualAmount: currentSummary.taxes + currentSummary.cardFees },
       { category: '영업외 수익/비용', targetRatio: 0, actualAmount: 0 },
-      { category: '비용 합계', targetRatio: 82.0, actualAmount: currentSummary.cogs + currentSummary.labor + currentSummary.rent + currentSummary.fixedCosts + currentSummary.variableCosts + currentSummary.marketingCosts + currentSummary.taxes + currentSummary.cardFees },
-      { category: '점포순이익', targetRatio: 18.0, actualAmount: currentSummary.netProfit },
+      { category: '비용 합계', targetRatio: 83.9, actualAmount: currentSummary.cogs + currentSummary.labor + currentSummary.rent + currentSummary.fixedCosts + currentSummary.variableCosts + currentSummary.marketingCosts + currentSummary.taxes + currentSummary.cardFees },
+      { category: '점포순이익', targetRatio: 16.1, actualAmount: currentSummary.netProfit },
     ];
 
     const summary = summaryItems.map(item => {
@@ -88,8 +88,9 @@ export function KPIDashboard({ currentSummary, currentExpenses, archives = [], i
       { item: '3.관리비 소계', subItem: '(인건비~변동비)', targetRatio: 39.9, actualAmount: currentSummary.labor + currentSummary.rent + currentSummary.fixedCosts + currentSummary.variableCosts, level: 0, isSubtotal: true },
       { item: '4. 마케팅비', subItem: '', targetRatio: 3.1, actualAmount: currentSummary.marketingCosts, level: 0 },
       { item: '5. 세금 예수금', subItem: '', targetRatio: 7.0, actualAmount: currentSummary.taxes, level: 0 },
-      { item: '6. 비용합계', subItem: '', targetRatio: 82.0, actualAmount: currentSummary.cogs + currentSummary.labor + currentSummary.rent + currentSummary.fixedCosts + currentSummary.variableCosts + currentSummary.marketingCosts + currentSummary.taxes + currentSummary.cardFees, level: 0, isTotal: true },
-      { item: '점포순이익', subItem: '', targetRatio: 18.0, actualAmount: currentSummary.netProfit, level: 0, isTotal: true },
+      { item: '6. 카드수수료', subItem: '', targetRatio: 1.9, actualAmount: currentSummary.cardFees, level: 0 },
+      { item: '7. 비용합계', subItem: '', targetRatio: 83.9, actualAmount: currentSummary.cogs + currentSummary.labor + currentSummary.rent + currentSummary.fixedCosts + currentSummary.variableCosts + currentSummary.marketingCosts + currentSummary.taxes + currentSummary.cardFees, level: 0, isTotal: true },
+      { item: '점포순이익', subItem: '', targetRatio: 16.1, actualAmount: currentSummary.netProfit, level: 0, isTotal: true },
     ];
 
     const details = detailItems.map(item => {

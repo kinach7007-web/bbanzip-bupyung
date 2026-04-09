@@ -215,9 +215,9 @@ export function PLDashboard({
       // Find matching leaf row or subtotal row
       let matchingRow = data.find(row => {
         if (row.isHeader) return false;
-        const cleanRowName = row.category.replace(/^[0-9.-]+\s*/, '').trim();
-        const cleanTNameNoPrefix = cleanTName.replace(/^[0-9.-]+\s*/, '').trim();
-        return cleanRowName === cleanTNameNoPrefix || row.category === cleanTName;
+        const cleanRowName = row.category.replace(/^[0-9.-]+\s*/, '').trim().replace(/\s+/g, '');
+        const cleanTNameNoPrefix = cleanTName.replace(/^[0-9.-]+\s*/, '').trim().replace(/\s+/g, '');
+        return cleanRowName === cleanTNameNoPrefix || row.category.replace(/\s+/g, '') === cleanTName.replace(/\s+/g, '');
       });
 
       // Special case for Sales mapping
@@ -234,6 +234,12 @@ export function PLDashboard({
         } else if (!matchingRow) {
           matchingRow = data.find(r => r.id === '1-2'); // Default fallback
         }
+      } else if (t.category === '주류&음료') {
+        if (cleanTName.includes('주류')) {
+          matchingRow = data.find(r => r.id === '2-3');
+        } else if (cleanTName.includes('음료')) {
+          matchingRow = data.find(r => r.id === '2-4');
+        }
       }
 
       if (matchingRow) {
@@ -241,7 +247,7 @@ export function PLDashboard({
       } else {
         // Find a generic/other row for the category
         let parentId = '';
-        if (t.category === '매출원가') parentId = '2';
+        if (t.category === '매출원가' || t.category === '주류&음료' || t.category === '2-1. 원자재(육류)' || t.category === '2-2. 식자재&공산품') parentId = '2';
         else if (t.category === '인건비') parentId = '4';
         else if (t.category === '임대료') parentId = '5';
         else if (t.category === '변동비') parentId = '6';
@@ -747,7 +753,7 @@ export function PLDashboard({
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">카테고리</label>
                       <div className="grid grid-cols-3 gap-2">
-                        {(['매출원가', '2-1. 원자재(육류)', '2-2. 식자재&공산품', '변동비', '고정비', '마케팅'] as TransactionCategory[]).map((cat) => (
+                        {(['2-1. 원자재(육류)', '2-2. 식자재&공산품', '주류&음료', '변동비', '고정비', '마케팅'] as TransactionCategory[]).map((cat) => (
                           <button
                             key={cat}
                             type="button"
