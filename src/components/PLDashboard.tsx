@@ -21,7 +21,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-type TransactionCategory = '매출' | '매출원가' | '인건비' | '변동비' | '고정비' | '마케팅' | '세금' | '카드수수료(1.9%)';
+type TransactionCategory = '매출' | '매출원가' | '2-1. 원자재(육류)' | '2-2. 식자재&공산품' | '인건비' | '변동비' | '고정비' | '마케팅' | '세금' | '카드수수료(1.9%)';
 
 import { type User } from './Login';
 
@@ -154,8 +154,8 @@ export function PLDashboard({
 
     replaceChildrenWithVendors('5', '고정비');
     replaceChildrenWithVendors('6', '변동비');
-    mergeVendorsWithStaticRows('2-1', '매출원가');
-    mergeVendorsWithStaticRows('2-2', '매출원가');
+    mergeVendorsWithStaticRows('2-1', '2-1. 원자재(육류)');
+    mergeVendorsWithStaticRows('2-2', '2-2. 식자재&공산품');
 
     // Replace 마케팅 (7) - Make it a header and add children
     const marketingVendors = vendorList['마케팅'] || [];
@@ -747,7 +747,7 @@ export function PLDashboard({
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">카테고리</label>
                       <div className="grid grid-cols-3 gap-2">
-                        {(['매출원가', '변동비', '고정비', '마케팅'] as TransactionCategory[]).map((cat) => (
+                        {(['매출원가', '2-1. 원자재(육류)', '2-2. 식자재&공산품', '변동비', '고정비', '마케팅'] as TransactionCategory[]).map((cat) => (
                           <button
                             key={cat}
                             type="button"
@@ -759,7 +759,8 @@ export function PLDashboard({
                                 : "bg-white border-gray-100 text-gray-500 hover:border-emerald-200"
                             )}
                           >
-                            {cat}
+                            {cat === '2-1. 원자재(육류)' ? '원자재(육류)' : 
+                             cat === '2-2. 식자재&공산품' ? '식자재&공산품' : cat}
                           </button>
                         ))}
                       </div>

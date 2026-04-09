@@ -173,7 +173,7 @@ const formatCompactNumber = (value: number) => {
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1'];
 
-type TransactionCategory = '매출' | '매출원가' | '인건비' | '변동비' | '고정비' | '마케팅' | '세금' | '카드수수료(1.9%)';
+type TransactionCategory = '매출' | '매출원가' | '2-1. 원자재(육류)' | '2-2. 식자재&공산품' | '인건비' | '변동비' | '고정비' | '마케팅' | '세금' | '카드수수료(1.9%)';
 
 interface Transaction {
   id: string;
@@ -858,7 +858,7 @@ export default function App() {
 
             // 1. Determine target row ID for each transaction
             detailTransactions = filteredTransactions.filter(t => {
-              if (t.category !== '매출원가' || t.name === '계좌이체') return false;
+              if (!['매출원가', '2-1. 원자재(육류)', '2-2. 식자재&공산품'].includes(t.category) || t.name === '계좌이체') return false;
 
               // Find matching row in DAILY_LEDGER_DATA or dynamic vendor list
               const tName = cleanTName(t);
@@ -877,16 +877,20 @@ export default function App() {
 
               // Check dynamic vendors (this is how P&L maps them)
               if (!matchingRowId) {
-                const vendors = vendorList['매출원가'] || [];
-                const vendorIndex = vendors.findIndex(v => {
-                  const cleanV = v.replace(/^[0-9.-]+\s*/, '').trim();
-                  return cleanV === tNameNoPrefix || v === tName;
-                });
-                if (vendorIndex !== -1) {
-                  // Determine which subgroup the vendor belongs to
-                  // In P&L, vendors are mapped to 2-1 (Meat) or 2-2 (Food) based on their position
-                  // This dynamic mapping is used as a fallback for the P&L dashboard.
-                  matchingRowId = `2-2-${vendorIndex + 1}`;
+                // Check all possible COGS vendor lists
+                const cogsCategories = ['매출원가', '2-1. 원자재(육류)', '2-2. 식자재&공산품'];
+                for (const catKey of cogsCategories) {
+                  const vendors = vendorList[catKey] || [];
+                  const vendorIndex = vendors.findIndex(v => {
+                    const cleanV = v.replace(/^[0-9.-]+\s*/, '').trim();
+                    return cleanV === tNameNoPrefix || v === tName;
+                  });
+                  if (vendorIndex !== -1) {
+                    // Determine which subgroup the vendor belongs to
+                    const subgroupId = catKey === '2-1. 원자재(육류)' ? '2-1' : '2-2';
+                    matchingRowId = `${subgroupId}-${vendorIndex + 1}`;
+                    break;
+                  }
                 }
               }
 
@@ -1413,9 +1417,9 @@ export default function App() {
   // Auto-reset app once for the admin
   useEffect(() => {
     const autoResetApp = async () => {
-      if (user?.email === 'kinach7007@gmail.com' && !localStorage.getItem('app_fully_reset_once_v6')) {
+      if (user?.email === 'kinach7007@gmail.com' && !localStorage.getItem('app_fully_reset_once_v8')) {
         try {
-          console.log("Auto-resetting app per admin request (v6)...");
+          console.log("Auto-resetting app per admin request (v8)...");
           const collectionsToDelete = ['transactions', 'cashBalanceData', 'salaryState', 'archives'];
           
           for (const collName of collectionsToDelete) {
@@ -1443,8 +1447,8 @@ export default function App() {
           }
           keysToRemove.forEach(key => localStorage.removeItem(key));
 
-          localStorage.setItem('app_fully_reset_once_v6', 'true');
-          console.log("App automatically reset to v6.");
+          localStorage.setItem('app_fully_reset_once_v8', 'true');
+          console.log("App automatically reset to v8.");
           alert("앱이 최신 버전으로 완전히 초기화되었습니다. 모든 데이터(거래내역, 시재, 급여, 보관함, 거래처 목록)가 기본값으로 복구되었습니다.");
           window.location.reload();
         } catch (e) {

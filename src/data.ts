@@ -67,8 +67,16 @@ export const PL_DATA = {
       details: [
         { name: "가스비", amount: 0, ratio: 0 },
         { name: "전기세", amount: 0, ratio: 0 },
-        { name: "상하수도", amount: 0, ratio: 0 },
-        { name: "기타 변동비", amount: 0, ratio: 0 },
+        { name: "상하수도요금", amount: 0, ratio: 0 },
+        { name: "정수기", amount: 0, ratio: 0 },
+        { name: "썬주차장", amount: 0, ratio: 0 },
+        { name: "음식물처리", amount: 0, ratio: 0 },
+        { name: "4대보험", amount: 0, ratio: 0 },
+        { name: "식비 & 복지", amount: 0, ratio: 0 },
+        { name: "인터넷 비품 결제", amount: 0, ratio: 0 },
+        { name: "서비스 테이블 결제", amount: 0, ratio: 0 },
+        { name: "포장용기 결제", amount: 0, ratio: 0 },
+        { name: "기타 카드 결제", amount: 0, ratio: 0 },
       ]
     },
     { 
@@ -89,11 +97,13 @@ export const PL_DATA = {
       ratio: 0,
       details: [
         { name: "임대료", amount: 0, ratio: 0 },
-        { name: "보험료", amount: 0, ratio: 0 },
-        { name: "보안(캡스)", amount: 0, ratio: 0 },
-        { name: "통신비", amount: 0, ratio: 0 },
-        { name: "수수료", amount: 0, ratio: 0 },
-        { name: "정수기", amount: 0, ratio: 0 },
+        { name: "화재보험", amount: 0, ratio: 0 },
+        { name: "캡스", amount: 0, ratio: 0 },
+        { name: "노무사", amount: 0, ratio: 0 },
+        { name: "세무서", amount: 0, ratio: 0 },
+        { name: "카솔(적립프로그램)", amount: 0, ratio: 0 },
+        { name: "인터넷/전화", amount: 0, ratio: 0 },
+        { name: "포스렌탈", amount: 0, ratio: 0 },
       ]
     },
     { 
@@ -108,12 +118,24 @@ export const PL_DATA = {
   ],
   vendors: {
     '매출': ['현금', '카드', '배달 정산 금액'],
-    '매출원가': [],
+    '2-1. 원자재(육류)': [
+      '뼈(제일축산)', '우거지', '모자반(제주)', '고추가루&참기름(참좋은식품)', 
+      '내장&소기름(프로축산)', '곱창(CNK)', '오돌뼈(미트촌)'
+    ],
+    '2-2. 식자재&공산품': [
+      '우리과일야채(조병윤)', '모아상사(공산품)', '대형마트 및 부평시장', '편의점', '다이소', 
+      '천하유통(김치)', '쌀(병남형님)', '주유', '모노마트(돈까스)', '화미(다화에프앤비)', '웰빙나눔유통'
+    ],
     '인건비': ['직원급여', '알바급여', '파출급여', '4대보험'],
-    '변동비': [],
+    '변동비': [
+      '가스비', '전기세', '상하수도요금', '정수기', '썬주차장', '음식물처리',
+      '4대보험', '식비 & 복지', '인터넷 비품 결제', '서비스 테이블 결제', '포장용기 결제', '기타 카드 결제'
+    ],
     '마케팅': [],
     '카드수수료(1.9%)': [],
-    '고정비': []
+    '고정비': [
+      '임대료', '화재보험', '캡스', '노무사', '세무서', '카솔(적립프로그램)', '인터넷/전화', '포스렌탈'
+    ]
   }
 };
 
