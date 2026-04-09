@@ -27,15 +27,19 @@ export function VendorManagementModal({
   onAddVendor,
   onReorderVendor
 }: VendorManagementModalProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string>('매출원가');
+  const [selectedCategory, setSelectedCategory] = useState<string>('2-1. 원자재(육류)');
   const [editingVendor, setEditingVendor] = useState<{ category: string, oldName: string, newName: string } | null>(null);
   const [confirmingEdit, setConfirmingEdit] = useState<{ category: string, oldName: string, newName: string } | null>(null);
   const [deletingVendor, setDeletingVendor] = useState<{ category: string, name: string } | null>(null);
   const [newVendorName, setNewVendorName] = useState('');
   const [isAdding, setIsAdding] = useState(false);
 
-  const categories = Object.keys(vendorList).filter(c => vendorList[c]?.length > 0 || c === '매출원가');
-  if (!categories.includes('매출원가')) categories.push('매출원가');
+  const categories = [
+    '2-1. 원자재(육류)',
+    '2-2. 식자재&공산품',
+    '변동비',
+    '고정비'
+  ];
 
   const handleSaveEdit = () => {
     if (!editingVendor || !editingVendor.newName.trim()) return;
