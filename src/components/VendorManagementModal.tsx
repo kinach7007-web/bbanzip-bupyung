@@ -38,7 +38,8 @@ export function VendorManagementModal({
     '2-1. 원자재(육류)',
     '2-2. 식자재&공산품',
     '변동비',
-    '고정비'
+    '고정비',
+    '마케팅'
   ];
 
   const handleSaveEdit = () => {

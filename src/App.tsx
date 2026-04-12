@@ -1426,52 +1426,22 @@ export default function App() {
 
   const [resetError, setResetError] = useState<string | null>(null);
 
-  // Auto-reset app once for the admin
+  // One-time cleanup to remove '배달의민족' from '마케팅' if it exists in Firestore
   useEffect(() => {
-    const autoResetApp = async () => {
-      if (user?.email === 'kinach7007@gmail.com' && !localStorage.getItem('app_fully_reset_once_v9')) {
+    const cleanupBaemin = async () => {
+      if (user && vendorList && vendorList['마케팅'] && vendorList['마케팅'].includes('배달의민족')) {
         try {
-          console.log("Auto-resetting app per admin request (v9)...");
-          const collectionsToDelete = ['transactions', 'cashBalanceData', 'salaryState', 'archives'];
-          
-          for (const collName of collectionsToDelete) {
-            const snapshot = await getDocs(collection(db, collName));
-            for (let i = 0; i < snapshot.docs.length; i += 500) {
-              const batch = writeBatch(db);
-              const chunk = snapshot.docs.slice(i, i + 500);
-              chunk.forEach(d => batch.delete(d.ref));
-              await batch.commit();
-            }
-          }
-
-          // Also reset global settings to default vendor list
-          await setDoc(doc(db, 'settings', 'global'), {
-            vendorList: PL_DATA.vendors
-          });
-          
-          // Clear local storage keys related to the app
-          const keysToRemove: string[] = [];
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith('pyeobanjib-')) {
-              keysToRemove.push(key);
-            }
-          }
-          keysToRemove.forEach(key => localStorage.removeItem(key));
-
-          localStorage.setItem('app_fully_reset_once_v9', 'true');
-          console.log("App automatically reset to v9.");
-          alert("앱이 최신 버전으로 완전히 초기화되었습니다. 모든 데이터(거래내역, 시재, 급여, 보관함, 거래처 목록)가 기본값으로 복구되었습니다.");
-          window.location.reload();
+          const newVendorList = { ...vendorList };
+          newVendorList['마케팅'] = newVendorList['마케팅'].filter(v => v !== '배달의민족');
+          await setDoc(doc(db, 'settings', 'global'), { vendorList: newVendorList }, { merge: true });
+          console.log("Removed '배달의민족' from '마케팅' vendor list.");
         } catch (e) {
-          console.error("Failed to reset app:", e);
+          console.error("Failed to cleanup vendor list:", e);
         }
       }
     };
-    if (user) {
-      autoResetApp();
-    }
-  }, [user]);
+    cleanupBaemin();
+  }, [user, vendorList]);
 
   const handleResetAllData = async () => {
     if (!user) return;
