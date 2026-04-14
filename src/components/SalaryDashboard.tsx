@@ -264,6 +264,30 @@ export function SalaryDashboard({
     };
   }, [employees, totalPartTime, totalDispatch, nationalHealth, nationalPension, employmentInsurance, industrialAccidentInsurance]);
 
+  const partTimeSummaryByName = useMemo(() => {
+    const summary: Record<string, number> = {};
+    partTimeDays.forEach(dayRecords => {
+      if (Array.isArray(dayRecords)) {
+        dayRecords.forEach(record => {
+          summary[record.name] = (summary[record.name] || 0) + record.amount;
+        });
+      }
+    });
+    return Object.entries(summary).sort((a, b) => b[1] - a[1]);
+  }, [partTimeDays]);
+
+  const dispatchSummaryByName = useMemo(() => {
+    const summary: Record<string, number> = {};
+    dispatchDays.forEach(dayRecords => {
+      if (Array.isArray(dayRecords)) {
+        dayRecords.forEach(record => {
+          summary[record.name] = (summary[record.name] || 0) + record.amount;
+        });
+      }
+    });
+    return Object.entries(summary).sort((a, b) => b[1] - a[1]);
+  }, [dispatchDays]);
+
   const formatCurrency = (amount: number) => {
     return amount.toLocaleString('ko-KR');
   };
@@ -448,8 +472,10 @@ export function SalaryDashboard({
 
       {/* Part-Time and Dispatch Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        {/* Part-Time Daily Tracking */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* 알바급여 Column */}
+        <div className="flex flex-col gap-4">
+          {/* Part-Time Daily Tracking */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-4 md:p-6 border-b border-gray-200 bg-gray-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="w-full">
               <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -533,9 +559,9 @@ export function SalaryDashboard({
                     총 {partTimeDays.filter(r => Array.isArray(r) && r.length > 0).length}일 ({partTimeDays.reduce((sum, r) => sum + (Array.isArray(r) ? r.length : 0), 0)}건)
                   </span>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[10px] md:text-xs text-left">
-                    <thead className="text-[9px] md:text-[11px] text-gray-700 bg-gray-50 border-b border-gray-200">
+                <div className="overflow-x-auto overflow-y-auto max-h-80">
+                  <table className="w-full text-[10px] md:text-xs text-left relative">
+                    <thead className="text-[9px] md:text-[11px] text-gray-700 bg-gray-50 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
                       <tr>
                         <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center border-r border-gray-200 w-10 md:w-12">날짜</th>
                         <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center border-r border-gray-200">이름</th>
@@ -601,7 +627,7 @@ export function SalaryDashboard({
                           </tr>
                         ));
                       })}
-                      <tr className="bg-gray-50 font-bold border-t-2 border-gray-300">
+                      <tr className="bg-gray-50 font-bold border-t-2 border-gray-300 sticky bottom-0 z-10 shadow-[0_-1px_2px_rgba(0,0,0,0.05)]">
                         <td colSpan={3} className="px-1 md:px-2 py-1.5 md:py-2 text-center border-r border-gray-200 text-gray-700">총 합계</td>
                         <td className="px-1 md:px-2 py-1.5 md:py-2 text-right border-r border-gray-200 text-emerald-700 text-[10px] md:text-sm">{totalPartTime.toLocaleString()}원</td>
                         {!isReadOnly && <td></td>}
@@ -618,6 +644,37 @@ export function SalaryDashboard({
           </div>
         </div>
 
+        {/* 알바급여 이름별 요약 */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-4 border-b border-gray-200 bg-gray-50/50">
+            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <Users className="w-4 h-4 text-blue-600" />
+              알바급여 이름별 합산
+            </h3>
+          </div>
+          <div className="p-4">
+            {partTimeSummaryByName.length > 0 ? (
+              <div className="space-y-2">
+                {partTimeSummaryByName.map(([name, amount]) => (
+                  <div key={name} className="flex justify-between items-center text-sm py-1 border-b border-gray-100 last:border-0">
+                    <span className="text-gray-700 font-medium">{name}</span>
+                    <span className="text-blue-700 font-bold">{formatCurrency(amount)}원</span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center text-sm py-2 mt-2 border-t border-gray-200 font-bold">
+                  <span className="text-gray-900">총 합계</span>
+                  <span className="text-blue-700">{formatCurrency(totalPartTime)}원</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm text-center py-4">알바급여 내역이 없습니다.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 파출급여 Column */}
+      <div className="flex flex-col gap-4">
         {/* Dispatch Daily Tracking */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-4 md:p-6 border-b border-gray-200 bg-gray-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -703,9 +760,9 @@ export function SalaryDashboard({
                     총 {dispatchDays.filter(r => Array.isArray(r) && r.length > 0).length}일 ({dispatchDays.reduce((sum, r) => sum + (Array.isArray(r) ? r.length : 0), 0)}건)
                   </span>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[10px] md:text-xs text-left">
-                    <thead className="text-[9px] md:text-[11px] text-gray-700 bg-gray-50 border-b border-gray-200">
+                <div className="overflow-x-auto overflow-y-auto max-h-80">
+                  <table className="w-full text-[10px] md:text-xs text-left relative">
+                    <thead className="text-[9px] md:text-[11px] text-gray-700 bg-gray-50 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
                       <tr>
                         <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center border-r border-gray-200 w-10 md:w-12">날짜</th>
                         <th className="px-1 md:px-2 py-1 md:py-2 font-semibold text-center border-r border-gray-200">이름</th>
@@ -769,7 +826,7 @@ export function SalaryDashboard({
                           </tr>
                         ));
                       })}
-                      <tr className="bg-gray-50 font-bold border-t-2 border-gray-300">
+                      <tr className="bg-gray-50 font-bold border-t-2 border-gray-300 sticky bottom-0 z-10 shadow-[0_-1px_2px_rgba(0,0,0,0.05)]">
                         <td colSpan={2} className="px-1 md:px-2 py-1.5 md:py-2 text-center border-r border-gray-200 text-gray-700">총 합계</td>
                         <td className="px-1 md:px-2 py-1.5 md:py-2 text-right border-r border-gray-200 text-emerald-700 text-[10px] md:text-sm">{totalDispatch.toLocaleString()}원</td>
                         {!isReadOnly && <td></td>}
@@ -785,9 +842,38 @@ export function SalaryDashboard({
             )}
           </div>
         </div>
-      </div>
 
-      {/* Additional Expenses Summary */}
+        {/* 파출급여 이름별 요약 */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-4 border-b border-gray-200 bg-gray-50/50">
+            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <Users className="w-4 h-4 text-purple-600" />
+              파출급여 이름별 합산
+            </h3>
+          </div>
+          <div className="p-4">
+            {dispatchSummaryByName.length > 0 ? (
+              <div className="space-y-2">
+                {dispatchSummaryByName.map(([name, amount]) => (
+                  <div key={name} className="flex justify-between items-center text-sm py-1 border-b border-gray-100 last:border-0">
+                    <span className="text-gray-700 font-medium">{name}</span>
+                    <span className="text-purple-700 font-bold">{formatCurrency(amount)}원</span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center text-sm py-2 mt-2 border-t border-gray-200 font-bold">
+                  <span className="text-gray-900">총 합계</span>
+                  <span className="text-purple-700">{formatCurrency(totalDispatch)}원</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm text-center py-4">파출급여 내역이 없습니다.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Additional Expenses Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 사대보험 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
@@ -936,8 +1022,6 @@ export function SalaryDashboard({
           </div>
         </div>
       </div>
-
-
 
       {/* Worker Management Modal */}
       {isWorkerModalOpen && (
