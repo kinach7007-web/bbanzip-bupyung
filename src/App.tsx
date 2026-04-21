@@ -253,18 +253,12 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
 export default function App() {
   const [businessDateStr, setBusinessDateStr] = useState<string>(() => {
-    const saved = localStorage.getItem('pyeobanjib-business-date');
-    if (saved) return saved;
     const now = new Date();
     if (now.getHours() < 10) {
       now.setDate(now.getDate() - 1);
     }
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   });
-
-  useEffect(() => {
-    localStorage.setItem('pyeobanjib-business-date', businessDateStr);
-  }, [businessDateStr]);
 
   const [isDailyCloseConfirmOpen, setIsDailyCloseConfirmOpen] = useState(false);
   const [nextBusinessDateStr, setNextBusinessDateStr] = useState('');
@@ -280,9 +274,14 @@ export default function App() {
     setIsDailyCloseConfirmOpen(true);
   };
 
-  const confirmDailyClose = () => {
-    setBusinessDateStr(nextBusinessDateStr);
-    setIsDailyCloseConfirmOpen(false);
+  const confirmDailyClose = async () => {
+    try {
+      if (!isAuthReady || !user || !user.isApproved || user.isBlocked) return;
+      await setDoc(doc(db, 'settings', 'global'), { businessDateStr: nextBusinessDateStr }, { merge: true });
+      setIsDailyCloseConfirmOpen(false);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, 'settings/global');
+    }
   };
 
   const [currentMonth, setCurrentMonth] = useState<string>(() => {
@@ -535,6 +534,7 @@ export default function App() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.vendorList) setVendorList(data.vendorList);
+        if (data.businessDateStr) setBusinessDateStr(data.businessDateStr);
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/global'));
     return () => unsubscribe();
