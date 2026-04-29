@@ -106,6 +106,21 @@ export function SalaryDashboard({
     }
   }, [partTimeInputWorkerId, partTimeWorkers]);
 
+  useEffect(() => {
+    if (isCurrentMonth) {
+      setEmployees(prev => prev.map(emp => {
+        if (emp.isAutoWorkDays && emp.totalWorkDays !== currentDay) {
+          return {
+            ...emp,
+            totalWorkDays: currentDay,
+            totalSalary: emp.dailyWage * currentDay
+          };
+        }
+        return emp;
+      }));
+    }
+  }, [currentDay, isCurrentMonth]);
+
   const [insuranceInputType, setInsuranceInputType] = useState<string>('국민건강');
   const [insuranceInputAmount, setInsuranceInputAmount] = useState<string>('');
 

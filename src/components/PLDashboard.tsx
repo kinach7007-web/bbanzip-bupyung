@@ -50,6 +50,7 @@ interface PLDashboardProps {
   getBusinessDate?: () => string;
   handleDailyClose?: () => void;
   canDailyClose?: boolean;
+  onVariableCostCalculated?: (amount: number) => void;
 }
 
 export function PLDashboard({ 
@@ -70,7 +71,8 @@ export function PLDashboard({
   isReadOnly = false,
   getBusinessDate,
   handleDailyClose,
-  canDailyClose = true
+  canDailyClose = true,
+  onVariableCostCalculated
 }: PLDashboardProps) {
   const [selectedCell, setSelectedCell] = React.useState<{ row: LedgerRow, day: number } | null>(null);
 
@@ -380,6 +382,15 @@ export function PLDashboard({
 
     return data;
   }, [transactions, vendorList, salaryBreakdown, currentMonth]);
+
+  React.useEffect(() => {
+    if (onVariableCostCalculated) {
+        const vCostRow = computedLedgerData.find(r => r.id === '6');
+        if (vCostRow) {
+            onVariableCostCalculated(vCostRow.total);
+        }
+    }
+  }, [computedLedgerData, onVariableCostCalculated]);
 
   const getCellTransactions = (row: LedgerRow, day: number) => {
     const [year, month] = currentMonth.split('-');

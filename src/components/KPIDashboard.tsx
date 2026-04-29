@@ -31,9 +31,10 @@ interface KPIDashboardProps {
   currentExpenses: any[];
   archives?: MonthlyArchive[];
   isReadOnly?: boolean;
+  overrideVariableCosts?: number;
 }
 
-export function KPIDashboard({ currentSummary, currentExpenses, archives = [], isReadOnly = false }: KPIDashboardProps) {
+export function KPIDashboard({ currentSummary, currentExpenses, archives = [], isReadOnly = false, overrideVariableCosts }: KPIDashboardProps) {
   const today = new Date().toISOString().split('T')[0];
 
   const PASTEL_COLORS = [
@@ -46,14 +47,23 @@ export function KPIDashboard({ currentSummary, currentExpenses, archives = [], i
   ];
 
   const computedKPIData = React.useMemo(() => {
+    const cogs = currentExpenses.find(e => e.name === '매출원가')?.amount || 0;
+    const labor = currentExpenses.find(e => e.name === '인건비')?.amount || 0;
+    const rent = currentExpenses.find(e => e.name === '임대료')?.amount || 0;
+    const fixedCosts = currentExpenses.find(e => e.name === '고정비')?.amount || 0;
+    const variableCosts = overrideVariableCosts ?? (currentExpenses.find(e => e.name === '변동비')?.amount || 0);
+    const marketingCosts = currentExpenses.find(e => e.name === '마케팅')?.amount || 0;
+    const taxes = currentExpenses.find(e => e.name === '세금')?.amount || 0;
+    const cardFees = currentExpenses.find(e => e.name === '카드수수료(1.9%)')?.amount || 0;
+
     // 1. Summary Section Data (1. 일일핵심지표 요약)
     const summaryItems = [
       { category: '매출액', targetRatio: 100.0, actualAmount: currentSummary.totalSales },
-      { category: '매출원가', targetRatio: 32.0, actualAmount: currentSummary.cogs },
-      { category: '관리비', targetRatio: 43.0, actualAmount: currentSummary.labor + currentSummary.rent + currentSummary.fixedCosts + currentSummary.variableCosts + currentSummary.marketingCosts },
-      { category: '세금 및 카드수수료', targetRatio: 8.9, actualAmount: currentSummary.taxes + currentSummary.cardFees },
+      { category: '매출원가', targetRatio: 32.0, actualAmount: cogs },
+      { category: '관리비', targetRatio: 43.0, actualAmount: labor + rent + fixedCosts + variableCosts + marketingCosts },
+      { category: '세금 및 카드수수료', targetRatio: 8.9, actualAmount: taxes + cardFees },
       { category: '영업외 수익/비용', targetRatio: 0, actualAmount: 0 },
-      { category: '비용 합계', targetRatio: 83.9, actualAmount: currentSummary.cogs + currentSummary.labor + currentSummary.rent + currentSummary.fixedCosts + currentSummary.variableCosts + currentSummary.marketingCosts + currentSummary.taxes + currentSummary.cardFees },
+      { category: '비용 합계', targetRatio: 83.9, actualAmount: cogs + labor + rent + fixedCosts + variableCosts + marketingCosts + taxes + cardFees },
       { category: '점포순이익', targetRatio: 16.1, actualAmount: currentSummary.netProfit },
     ];
 
@@ -80,16 +90,16 @@ export function KPIDashboard({ currentSummary, currentExpenses, archives = [], i
       { item: '매출원가', subItem: '2-1. 원자재(육류)', targetRatio: 19.5, actualAmount: getDetailAmount('매출원가', '2-1. 원자재(육류)'), level: 1 },
       { item: '', subItem: '2-2. 식자재&공산품', targetRatio: 9.5, actualAmount: getDetailAmount('매출원가', '2-2. 식자재&공산품'), level: 1 },
       { item: '', subItem: '주류/음료', targetRatio: 3.0, actualAmount: liquorBeverageTotal, level: 1 },
-      { item: '2.매출원가 소계', subItem: '', targetRatio: 32.0, actualAmount: currentSummary.cogs, level: 0, isSubtotal: true },
-      { item: '1)인건비', subItem: '', targetRatio: 25.0, actualAmount: currentSummary.labor, level: 1 },
-      { item: '2)임대료', subItem: '', targetRatio: 6.0, actualAmount: currentSummary.rent, level: 1 },
-      { item: '3)고정비', subItem: '', targetRatio: 0.9, actualAmount: currentSummary.fixedCosts, level: 1 },
-      { item: '4)변동비', subItem: '', targetRatio: 8.0, actualAmount: currentSummary.variableCosts, level: 1 },
-      { item: '3.관리비 소계', subItem: '(인건비~변동비)', targetRatio: 39.9, actualAmount: currentSummary.labor + currentSummary.rent + currentSummary.fixedCosts + currentSummary.variableCosts, level: 0, isSubtotal: true },
-      { item: '4. 마케팅비', subItem: '', targetRatio: 3.1, actualAmount: currentSummary.marketingCosts, level: 0 },
-      { item: '5. 세금 예수금', subItem: '', targetRatio: 7.0, actualAmount: currentSummary.taxes, level: 0 },
-      { item: '6. 카드수수료', subItem: '', targetRatio: 1.9, actualAmount: currentSummary.cardFees, level: 0 },
-      { item: '7. 비용합계', subItem: '', targetRatio: 83.9, actualAmount: currentSummary.cogs + currentSummary.labor + currentSummary.rent + currentSummary.fixedCosts + currentSummary.variableCosts + currentSummary.marketingCosts + currentSummary.taxes + currentSummary.cardFees, level: 0, isTotal: true },
+      { item: '2.매출원가 소계', subItem: '', targetRatio: 32.0, actualAmount: cogs, level: 0, isSubtotal: true },
+      { item: '1)인건비', subItem: '', targetRatio: 25.0, actualAmount: labor, level: 1 },
+      { item: '2)임대료', subItem: '', targetRatio: 6.0, actualAmount: rent, level: 1 },
+      { item: '3)고정비', subItem: '', targetRatio: 0.9, actualAmount: fixedCosts, level: 1 },
+      { item: '4)변동비', subItem: '', targetRatio: 8.0, actualAmount: variableCosts, level: 1 },
+      { item: '3.관리비 소계', subItem: '(인건비~변동비)', targetRatio: 39.9, actualAmount: labor + rent + fixedCosts + variableCosts, level: 0, isSubtotal: true },
+      { item: '4. 마케팅비', subItem: '', targetRatio: 3.1, actualAmount: marketingCosts, level: 0 },
+      { item: '5. 세금 예수금', subItem: '', targetRatio: 7.0, actualAmount: taxes, level: 0 },
+      { item: '6. 카드수수료', subItem: '', targetRatio: 1.9, actualAmount: cardFees, level: 0 },
+      { item: '7. 비용합계', subItem: '', targetRatio: 83.9, actualAmount: cogs + labor + rent + fixedCosts + variableCosts + marketingCosts + taxes + cardFees, level: 0, isTotal: true },
       { item: '점포순이익', subItem: '', targetRatio: 16.1, actualAmount: currentSummary.netProfit, level: 0, isTotal: true },
     ];
 

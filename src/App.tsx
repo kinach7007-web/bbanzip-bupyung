@@ -291,6 +291,8 @@ export default function App() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
+  const [variableCost, setVariableCost] = useState<number>(0);
+
   const getBusinessDate = () => {
     if (businessDateStr.startsWith(currentMonth)) {
       return businessDateStr;
@@ -790,7 +792,11 @@ export default function App() {
 
   const currentExpenses = useMemo(() => {
     const baseExpenses = [...PL_DATA.expenses];
-    const filteredTransactions = allTransactions.filter(t => t.name !== '계좌이체');
+    const filteredTransactions = allTransactions.filter(t => {
+      const tDate = new Date(t.date);
+      const tMonth = tDate.toISOString().slice(0, 7);
+      return t.name !== '계좌이체' && tMonth === currentMonth;
+    });
     
     // Add new transactions to categories and their details
     const updatedExpenses = baseExpenses.map(cat => {
@@ -848,7 +854,7 @@ export default function App() {
 
       let updatedDetails = cat.details;
 
-      if (['매출원가', '변동비', '마케팅', '고정비'].includes(cat.name)) {
+      if (['매출원가', '마케팅', '고정비'].includes(cat.name)) {
         updatedDetails = cat.details?.map(detail => {
           let detailTransactions = [];
           if (cat.name === '매출원가') {
@@ -2084,12 +2090,14 @@ export default function App() {
             getBusinessDate={getBusinessDate}
             handleDailyClose={handleDailyCloseClick}
             canDailyClose={canDailyClose}
+            onVariableCostCalculated={setVariableCost}
           />
         ) : activeTab === 'kpi' ? (
           <KPIDashboard 
             currentSummary={currentSummary}
             currentExpenses={currentExpenses}
             archives={archives}
+            overrideVariableCosts={variableCost}
           />
         ) : activeTab === 'salary' ? (
           <SalaryDashboard 
