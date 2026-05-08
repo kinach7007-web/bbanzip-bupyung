@@ -346,8 +346,12 @@ export default function App() {
   };
 
   const [currentMonth, setCurrentMonth] = useState<string>(() => {
-    const saved = localStorage.getItem('pyeobanjib-current-month');
-    if (saved) return saved;
+    try {
+      const saved = localStorage.getItem('pyeobanjib-current-month');
+      if (saved) return saved;
+    } catch (e) {
+      console.warn("localStorage read failed:", e);
+    }
     const now = new Date();
     if (now.getHours() < 10) {
       now.setDate(now.getDate() - 1);
@@ -605,7 +609,11 @@ export default function App() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.vendorList) setVendorList(data.vendorList);
-        if (data.businessDateStr) setBusinessDateStr(data.businessDateStr);
+        if (data.businessDateStr) {
+          setBusinessDateStr(data.businessDateStr);
+          const bMonth = data.businessDateStr.substring(0, 7);
+          setCurrentMonth(prev => prev !== bMonth ? bMonth : prev);
+        }
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/global'));
     return () => unsubscribe();
@@ -613,7 +621,11 @@ export default function App() {
 
   // Persistence for currentMonth
   useEffect(() => {
-    localStorage.setItem('pyeobanjib-current-month', currentMonth);
+    try {
+      localStorage.setItem('pyeobanjib-current-month', currentMonth);
+    } catch (e) {
+      console.warn("localStorage write failed:", e);
+    }
   }, [currentMonth]);
 
   // Sync Daily Sales Cash with CashBalanceData income
@@ -1532,7 +1544,11 @@ export default function App() {
       }
 
       // Force update localStorage and state
-      localStorage.setItem('pyeobanjib-current-month', nextMonthStr);
+      try {
+        localStorage.setItem('pyeobanjib-current-month', nextMonthStr);
+      } catch (e) {
+        console.warn("localStorage blocked:", e);
+      }
       setCurrentMonth(nextMonthStr);
       
       // Close modal immediately after success
@@ -1545,7 +1561,6 @@ export default function App() {
       setSales({});
 
       alert(`${currentMonth.replace('-', '년 ')}월 마감이 완료되었습니다. ${nextMonthStr.replace('-', '년 ')}월 업무를 시작합니다.`);
-      window.location.reload();
     } catch (e) {
       console.error("Close month error details:", e);
       alert(`마감 처리 중 오류가 발생했습니다: ${e instanceof Error ? e.message : String(e)}`);
