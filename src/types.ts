@@ -62,6 +62,9 @@ export interface MonthlyArchive {
     netProfit: number;
     operatingProfit: number;
     cogs: number;
+    gamjatang?: number;
+    supply?: number;
+    alcohol?: number;
     labor: number;
     rent: number;
     fixedCosts: number;
@@ -75,5 +78,10 @@ export interface MonthlyArchive {
     transactions: any[];
     cashBalanceData: any;
     salaryState: SalaryState;
+    sales?: DailySales;
   };
+}
+
+export interface DailySales {
+    [day: number]: { delivery: number, cash: number, card: number }
 }

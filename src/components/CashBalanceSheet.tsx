@@ -181,14 +181,14 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
             <h3 
               className={cn(
                 "text-2xl font-bold text-gray-900 mt-1",
-                !isReadOnly && !data.isCarryoverFixed && "cursor-pointer hover:text-blue-600 transition-colors"
+                !isReadOnly && "cursor-pointer hover:text-blue-600 transition-colors"
               )}
               onClick={() => {
-                if (isReadOnly || data.isCarryoverFixed) return;
+                if (isReadOnly) return;
                 setTempBalanceInput(data.carryover.toString());
                 setIsInputVisible(true);
               }}
-              title={isReadOnly || data.isCarryoverFixed ? "" : "클릭하여 수정"}
+              title={isReadOnly ? "" : "클릭하여 수정"}
             >
               {formatCurrency(data.carryover)}
             </h3>
@@ -211,31 +211,31 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
           <table className="w-full text-sm text-left border-collapse table-fixed min-w-[1000px] relative">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="sticky top-0 z-20 bg-gray-50 px-3 py-4 font-bold text-gray-700 border-r border-gray-100 w-[60px] text-center uppercase tracking-tighter text-[11px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">일자</th>
-                <th className="sticky top-0 z-20 bg-gray-50 px-3 py-4 font-bold text-gray-700 border-r border-gray-100 w-[50px] text-center uppercase tracking-tighter text-[11px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">요일</th>
-                <th className="sticky top-0 z-20 bg-gray-50 px-4 py-4 font-bold text-gray-700 border-r border-gray-100 w-[120px] text-right uppercase tracking-tighter text-[11px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">전일 시재</th>
-                <th className="sticky top-0 z-20 bg-emerald-50 px-4 py-4 font-bold text-emerald-700 border-r border-gray-100 w-[120px] text-right uppercase tracking-tighter text-[11px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">현금 입금</th>
-                <th className="sticky top-0 z-20 bg-rose-50 px-4 py-4 font-bold text-rose-700 border-r border-gray-100 w-[120px] text-right uppercase tracking-tighter text-[11px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">계좌 이체</th>
-                <th className="sticky top-0 z-20 bg-rose-50 px-4 py-4 font-bold text-rose-700 border-r border-gray-100 w-[120px] text-right uppercase tracking-tighter text-[11px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">기타 지출</th>
-                <th className="sticky top-0 z-20 bg-gray-50 px-4 py-4 font-bold text-gray-700 border-r border-gray-100 min-w-[150px] uppercase tracking-tighter text-[11px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">비고 & 시재맞음</th>
-                <th className="sticky top-0 z-20 bg-blue-50 px-4 py-4 font-bold text-blue-700 w-[130px] text-right uppercase tracking-tighter text-[11px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">현금시재 잔액</th>
+                <th className="sticky top-0 z-20 bg-gray-50 px-1 py-2 font-bold text-gray-700 border-r border-gray-100 w-[50px] text-center uppercase tracking-tighter text-[9px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">일자</th>
+                <th className="sticky top-0 z-20 bg-gray-50 px-1 py-2 font-bold text-gray-700 border-r border-gray-100 w-[40px] text-center uppercase tracking-tighter text-[9px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">요일</th>
+                <th className="sticky top-0 z-20 bg-gray-50 px-2 py-2 font-bold text-gray-700 border-r border-gray-100 w-[100px] text-right uppercase tracking-tighter text-[9px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">전일 시재</th>
+                <th className="sticky top-0 z-20 bg-emerald-50 px-2 py-2 font-bold text-emerald-700 border-r border-gray-100 w-[100px] text-right uppercase tracking-tighter text-[9px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">현금 입금</th>
+                <th className="sticky top-0 z-20 bg-rose-50 px-2 py-2 font-bold text-rose-700 border-r border-gray-100 w-[100px] text-right uppercase tracking-tighter text-[9px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">계좌 이체</th>
+                <th className="sticky top-0 z-20 bg-rose-50 px-2 py-2 font-bold text-rose-700 border-r border-gray-100 w-[100px] text-right uppercase tracking-tighter text-[9px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">기타 지출</th>
+                <th className="sticky top-0 z-20 bg-gray-50 px-2 py-2 font-bold text-gray-700 border-r border-gray-100 min-w-[120px] uppercase tracking-tighter text-[9px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">비고 & 시재맞음</th>
+                <th className="sticky top-0 z-20 bg-blue-50 px-2 py-2 font-bold text-blue-700 w-[110px] text-right uppercase tracking-tighter text-[9px] border-b shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)]">현금시재 잔액</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {data.rows.map((row, idx) => (
                 <tr key={idx} className="hover:bg-gray-50/80 transition-colors group">
-                  <td className="px-3 py-3 text-center border-r border-gray-50 font-mono text-gray-500 text-xs">{row.day}</td>
+                  <td className="px-1 py-2 text-center border-r border-gray-50 font-mono text-gray-500 text-[10px]">{row.day}</td>
                   <td className={cn(
-                    "px-3 py-3 text-center border-r border-gray-50 font-bold text-xs",
+                    "px-1 py-2 text-center border-r border-gray-50 font-bold text-[10px]",
                     row.weekday === '일' ? "text-rose-500" : row.weekday === '토' ? "text-blue-500" : "text-gray-400"
                   )}>{row.weekday}</td>
-                  <td className="px-4 py-3 text-right border-r border-gray-50 font-mono text-gray-400 text-xs tabular-nums">
+                  <td className="px-2 py-2 text-right border-r border-gray-50 font-mono text-gray-400 text-[10px] tabular-nums">
                     {formatCurrency(row.prevBalance).replace('₩', '')}
                   </td>
-                  <td className="px-4 py-3 text-right border-r border-gray-50 font-mono font-bold text-emerald-600 bg-emerald-50/5 tabular-nums">
+                  <td className="px-2 py-2 text-right border-r border-gray-50 font-mono font-bold text-emerald-600 bg-emerald-50/5 tabular-nums text-[10px]">
                     {row.income > 0 ? formatCurrency(row.income).replace('₩', '') : '-'}
                   </td>
-                  <td className="px-4 py-3 text-right border-r border-gray-50 font-mono text-rose-600 bg-rose-50/5 tabular-nums group-hover:bg-white transition-colors relative group">
+                  <td className="px-2 py-2 text-right border-r border-gray-50 font-mono text-rose-600 bg-rose-50/5 tabular-nums group-hover:bg-white transition-colors relative group text-[10px]">
                     {editingRowIdx === idx && editingField === 'transferOut' ? (
                       <input 
                         type="text" 
@@ -258,7 +258,7 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right border-r border-gray-50 font-mono bg-gray-50/30 tabular-nums group-hover:bg-white transition-colors relative">
+                  <td className="px-2 py-2 text-right border-r border-gray-50 font-mono bg-gray-50/30 tabular-nums group-hover:bg-white transition-colors relative text-[10px]">
                     {editingRowIdx === idx && editingField === 'otherExpense' ? (
                       <div className="flex flex-col gap-1.5 min-w-[100px]">
                         <div className="flex items-center justify-end gap-1 bg-gray-100 p-0.5 rounded">
@@ -298,7 +298,7 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 border-r border-gray-50 text-gray-600 text-[11px] leading-tight group-hover:bg-white transition-colors relative">
+                  <td className="px-2 py-2 border-r border-gray-50 text-gray-600 text-[10px] leading-tight group-hover:bg-white transition-colors relative">
                     {editingRowIdx === idx ? (
                       <div className="flex flex-col gap-1.5">
                         <input 
@@ -364,21 +364,21 @@ export const CashBalanceSheet: React.FC<CashBalanceSheetProps> = ({ user, data, 
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-blue-600 bg-blue-50/5 tabular-nums">
+                  <td className="px-2 py-2 text-right font-mono font-bold text-blue-600 bg-blue-50/5 tabular-nums text-[10px]">
                     {formatCurrency(row.balance).replace('₩', '')}
                   </td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr className="bg-gray-100/80 font-bold border-t-2 border-gray-200">
-                <td colSpan={3} className="px-4 py-4 text-right border-r border-gray-200 text-gray-600 uppercase text-[11px]">합계 / 잔액</td>
-                <td className="px-4 py-4 text-right border-r border-gray-200 text-emerald-700 bg-emerald-100/30 font-mono tabular-nums">{formatCurrency(data.totalIncome).replace('₩', '')}</td>
-                <td colSpan={2} className="px-4 py-4 text-right border-r border-gray-200 text-rose-700 bg-rose-100/30 font-mono tabular-nums">{formatCurrency(data.totalExpense).replace('₩', '')}</td>
-                <td className="px-4 py-4 border-r border-gray-200 text-gray-500 text-[10px] font-medium">
+              <tr className="bg-gray-100/80 font-bold border-t-2 border-gray-200 text-[10px]">
+                <td colSpan={3} className="px-2 py-2 text-right border-r border-gray-200 text-gray-600 uppercase">합계 / 잔액</td>
+                <td className="px-2 py-2 text-right border-r border-gray-200 text-emerald-700 bg-emerald-100/30 font-mono tabular-nums">{formatCurrency(data.totalIncome).replace('₩', '')}</td>
+                <td colSpan={2} className="px-2 py-2 text-right border-r border-gray-200 text-rose-700 bg-rose-100/30 font-mono tabular-nums">{formatCurrency(data.totalExpense).replace('₩', '')}</td>
+                <td className="px-2 py-2 border-r border-gray-200 text-gray-500 font-medium">
                   순증감: <span className={cn(data.netChange >= 0 ? "text-emerald-600" : "text-rose-600")}>{formatCurrency(data.netChange).replace('₩', '')}</span>
                 </td>
-                <td className="px-4 py-4 text-right text-blue-700 bg-blue-100/30 font-mono tabular-nums">{formatCurrency(data.finalBalance).replace('₩', '')}</td>
+                <td className="px-2 py-2 text-right text-blue-700 bg-blue-100/30 font-mono tabular-nums">{formatCurrency(data.finalBalance).replace('₩', '')}</td>
               </tr>
             </tfoot>
           </table>

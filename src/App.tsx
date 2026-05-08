@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useState, useEffect, Component, type ReactNode, type ErrorInfo } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, Component, type ReactNode, type ErrorInfo } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -56,16 +56,22 @@ import {
   type FirebaseUser 
 } from './firebase';
 import { PL_DATA, KPI_DATA, CASH_BALANCE_DATA, DAILY_LEDGER_DATA } from './data';
+import { ItemSummaryDashboard } from './components/ItemSummaryDashboard';
 import { PLDashboard } from './components/PLDashboard';
-import { KPIDashboard } from './components/KPIDashboard';
+import { SummaryDashboard } from './components/SummaryDashboard';
+import { SingleValueDashboard } from './components/SingleValueDashboard';
+import { CurrentExpensesDashboard } from './components/CurrentExpensesDashboard'; // Added import
+import { FixedValueDashboard } from './components/FixedValueDashboard';
+import { GenericLedgerDashboard } from './components/GenericLedgerDashboard';
+import { RentInput } from './components/RentInput';
 import { CashBalanceSheet } from './components/CashBalanceSheet';
 import { SalaryDashboard } from './components/SalaryDashboard';
 import { ArchiveViewer } from './components/ArchiveViewer';
+import { PerformanceResultsDashboard } from './components/PerformanceResultsDashboard';
 import { Login, type User } from './components/Login';
 import { PasswordReset } from './components/PasswordReset';
 import { UserManagement } from './components/UserManagement';
-import { VendorManagementModal } from './components/VendorManagementModal';
-import { type Employee, type PartTimeWorker, type PartTimeRecord, type DispatchRecord, type SalaryState, type MonthlyArchive } from './types';
+import { type Employee, type PartTimeWorker, type PartTimeRecord, type DispatchRecord, type SalaryState, type MonthlyArchive, type DailySales } from './types';
 
 const currentDay = new Date().getDate();
 const INITIAL_EMPLOYEES: Employee[] = [
@@ -173,7 +179,7 @@ const formatCompactNumber = (value: number) => {
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#6366f1'];
 
-type TransactionCategory = '매출' | '매출원가' | '주류&음료' | '2-1. 원자재(육류)' | '2-2. 식자재&공산품' | '인건비' | '변동비' | '고정비' | '마케팅' | '세금' | '카드수수료(1.9%)';
+type TransactionCategory = '매출' | '매출원가' | '주류&음료' | '2-1. 원자재(육류)' | '2-2. 식자재&공산품' | '인건비' | '변동비' | '고정비' | '마케팅' | '세금' | '카드수수료(1.9%)' | '임대료';
 
 interface Transaction {
   id: string;
@@ -183,6 +189,7 @@ interface Transaction {
   amount: number;
   status?: 'paid' | 'unpaid';
   author?: string;
+  uid?: string;
   month: string;
 }
 
@@ -252,6 +259,60 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 export default function App() {
+  const groups = useMemo(() => [
+    {
+        title: "감자탕&원재료",
+        items: ["뼈(제일축산)", "우거지", "모자반(제주)", "고추가루&참기름(참좋은식품)", "내장&소기름(프로축산)", "곱창(CNK)", "오돌뼈(미트촌)"]
+    },
+    {
+        title: "식자재&공산품",
+        items: ["우리과일야채(조병윤)", "모아상사(공산품)", "대형마트 및 부평시장", "편의점", "다이소", "천하유통(김치)", "쌀(병남형님)", "주유", "모노마트(돈까스)", "화미(다화에프앤비)", "웰빙나눔유통"]
+    },
+    {
+        title: "주류&음료",
+        items: ["주류", "음료"]
+    },
+    {
+        title: "고정비",
+        items: ["화재보험", "캡스", "노무사", "세무서", "카솔(적립프로그램)", "인터넷/전화", "포스렌탈"]
+    },
+    {
+        title: "변동비",
+        items: ["가스비", "전기세", "상하수도요금", "정수기", "썬주차장", "음식물처리", "식비 & 복지", "인터넷 비품 결제", "서비스 테이블 결제", "포장용기 결제", "기타 카드 결제"]
+    },
+    {
+        title: "마케팅",
+        items: ["네이버광고", "블로그", "당근광고", "인스타광고", "틱톡광고", "인스타 인플루언서", "기타 마케팅"]
+    }
+  ], []);
+
+  const resetAppData = async () => {
+    if (!confirm('정말 모든 데이터를 초기화하고 4월로 설정하시겠습니까?')) return;
+    
+    try {
+      const batch = writeBatch(db);
+      
+      // 1. Clear current month collections
+      const collections = ['transactions', 'cashBalanceData', 'salaryState'];
+      for (const col of collections) {
+         const docRef = doc(db, col, currentMonth);
+         batch.delete(docRef);
+      }
+      
+      // 2. Clear global settings (vendor list)
+      batch.update(doc(db, 'settings', 'global'), { vendorList: {} });
+      
+      await batch.commit();
+      
+      localStorage.removeItem('pyeobanjib-current-month');
+      alert('데이터가 초기화되었습니다. 새로고침합니다.');
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      alert('초기화 실패');
+    }
+  };
+
   const [businessDateStr, setBusinessDateStr] = useState<string>(() => {
     const now = new Date();
     if (now.getHours() < 10) {
@@ -288,6 +349,9 @@ export default function App() {
     const saved = localStorage.getItem('pyeobanjib-current-month');
     if (saved) return saved;
     const now = new Date();
+    if (now.getHours() < 10) {
+      now.setDate(now.getDate() - 1);
+    }
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
@@ -297,9 +361,7 @@ export default function App() {
     if (businessDateStr.startsWith(currentMonth)) {
       return businessDateStr;
     } else {
-      const [year, month] = currentMonth.split('-').map(Number);
-      const lastDay = new Date(year, month, 0).getDate();
-      return `${currentMonth}-${String(lastDay).padStart(2, '0')}`;
+      return `${currentMonth}-01`;
     }
   };
 
@@ -324,6 +386,7 @@ export default function App() {
   const [isClosingMonth, setIsClosingMonth] = useState(false);
   const [isClosingLoading, setIsClosingLoading] = useState(false);
   const [salaryState, setSalaryState] = useState<SalaryState>(() => generateInitialSalaryState(currentMonth, user?.id));
+  const [sales, setSales] = useState<DailySales>({});
 
   const canDailyClose = useMemo(() => {
     const [year, month, day] = businessDateStr.split('-').map(Number);
@@ -477,7 +540,7 @@ export default function App() {
       setTransactions(data);
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'transactions'));
     return () => unsubscribe();
-  }, [isAuthReady, user, currentMonth]);
+  }, [isAuthReady, user?.id, currentMonth]);
 
   // Real-time Sync: Cash Balance
   useEffect(() => {
@@ -485,7 +548,13 @@ export default function App() {
     const docRef = doc(db, 'cashBalanceData', currentMonth);
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
-        setCashBalanceData(docSnap.data() as any);
+        const data = docSnap.data();
+        setCashBalanceData(data as any);
+        if (data.sales) {
+          setSales(data.sales);
+        } else {
+          setSales({});
+        }
       } else {
         // Initialize if not exists
         const initial = generateInitialCashData(currentMonth, user.id);
@@ -494,7 +563,7 @@ export default function App() {
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `cashBalanceData/${currentMonth}`));
     return () => unsubscribe();
-  }, [isAuthReady, user, currentMonth]);
+  }, [isAuthReady, user?.id, currentMonth]);
 
   // Real-time Sync: Salary State
   useEffect(() => {
@@ -511,7 +580,7 @@ export default function App() {
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `salaryState/${currentMonth}`));
     return () => unsubscribe();
-  }, [isAuthReady, user, currentMonth]);
+  }, [isAuthReady, user?.id, currentMonth]);
 
   // Real-time Sync: Archives
   useEffect(() => {
@@ -526,7 +595,7 @@ export default function App() {
       setArchives(data);
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'archives'));
     return () => unsubscribe();
-  }, [isAuthReady, user]);
+  }, [isAuthReady, user?.id]);
 
   // Real-time Sync: Settings
   useEffect(() => {
@@ -540,12 +609,74 @@ export default function App() {
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/global'));
     return () => unsubscribe();
-  }, [isAuthReady, user]);
+  }, [isAuthReady, user?.id]);
 
   // Persistence for currentMonth
   useEffect(() => {
     localStorage.setItem('pyeobanjib-current-month', currentMonth);
   }, [currentMonth]);
+
+  // Sync Daily Sales Cash with CashBalanceData income
+  const handleUpdateSales = (updater: React.SetStateAction<DailySales>) => {
+    setSales(prevSales => {
+        const nextSales = typeof updater === 'function' ? (updater as (prev: DailySales) => DailySales)(prevSales) : updater;
+
+        // Skip if same
+        if (JSON.stringify(nextSales) === JSON.stringify(prevSales)) return prevSales;
+        
+        handleSetCashBalanceData(prev => {
+            if (!prev || !prev.rows) return prev;
+            
+            // Check if sales data actually resulted in changes
+            let changed = false;
+            const newRows = prev.rows.map((row, idx) => {
+                const day = idx + 1;
+                const cashValue = nextSales[day]?.cash || 0;
+                if (row.income !== cashValue) {
+                    changed = true;
+                    return {...row, income: cashValue};
+                }
+                return row;
+            });
+
+            if (!changed) {
+                return { ...prev, sales: nextSales };
+            }
+
+            // Calculate new state
+            let currentBalance = prev.carryover;
+            const recalculatedRows = newRows.map(row => {
+                const prevBal = currentBalance;
+                const balance = prevBal + row.income - row.transferOut - row.otherExpense;
+                currentBalance = balance;
+                return {...row, prevBalance: prevBal, balance: balance};
+            });
+
+            // Check if truly different
+            if (JSON.stringify(recalculatedRows) === JSON.stringify(prev.rows)) {
+                 return { ...prev, sales: nextSales };
+            }
+
+            const totalIncome = recalculatedRows.reduce((acc, row) => acc + row.income, 0);
+            const totalExpense = recalculatedRows.reduce((acc, row) => acc + row.transferOut + row.otherExpense, 0);
+            const finalBalance = recalculatedRows[recalculatedRows.length - 1]?.balance || 0;
+            const netChange = finalBalance - prev.carryover;
+
+            return {
+                ...prev,
+                rows: recalculatedRows,
+                totalIncome,
+                totalExpense,
+                netChange,
+                finalBalance,
+                sales: nextSales
+            };
+        });
+
+        return nextSales;
+    });
+  };
+
 
   // Recursive function to handle nested arrays for Firestore
   const sanitizeForFirestore = (data: any): any => {
@@ -724,9 +855,6 @@ export default function App() {
   };
 
   // Persistence: Save to localStorage (only UI state)
-  useEffect(() => {
-    localStorage.setItem('pyeobanjib-current-month', currentMonth);
-  }, [currentMonth]);
   
   // Form state
   const [newExpense, setNewExpense] = useState({
@@ -759,8 +887,9 @@ export default function App() {
           category: '매출',
           name: '현금',
           amount: row.income,
-          month: currentMonth
-        });
+          month: currentMonth,
+  uid: user.id
+});
       }
     });
     return generated;
@@ -768,11 +897,13 @@ export default function App() {
 
   const allTransactions = useMemo(() => [...transactions, ...cashTransactions], [transactions, cashTransactions]);
 
+  const dailySalesTotal = useMemo(() => {
+    return Object.values(sales).reduce((sum, s: any) => sum + s.delivery + s.cash + s.card, 0);
+  }, [sales]);
+
   const currentTotalSales = useMemo(() => {
-    const salesTransactions = allTransactions.filter(t => t.category === '매출' && t.name !== '계좌이체');
-    const additionalSales = salesTransactions.reduce((sum, t) => sum + t.amount, 0);
-    return PL_DATA.summary.totalSales + additionalSales;
-  }, [allTransactions]);
+    return dailySalesTotal;
+  }, [dailySalesTotal]);
 
   // Calculate derived data
   const salaryBreakdown = useMemo(() => {
@@ -790,16 +921,68 @@ export default function App() {
     };
   }, [salaryState]);
 
+  const filteredTransactions = useMemo(() => {
+    return allTransactions.filter(t => {
+      let tMonth = '';
+      if (t.month) {
+        tMonth = t.month;
+      } else if (typeof t.date === 'string' && t.date.length >= 7 && t.date.includes('-')) {
+        tMonth = t.date.substring(0, 7);
+      } else {
+        const tDate = new Date(t.date);
+        if (isNaN(tDate.getTime())) {
+            const day = parseInt(t.date.split('(')[0]);
+            const date = new Date();
+            date.setDate(day);
+            tMonth = date.toISOString().slice(0, 7);
+        } else {
+            tMonth = `${tDate.getFullYear()}-${String(tDate.getMonth() + 1).padStart(2, '0')}`;
+        }
+      }
+      const isMatch = t.name !== '계좌이체' && tMonth === currentMonth;
+      return isMatch;
+    });
+  }, [allTransactions, currentMonth]);
+
   const currentExpenses = useMemo(() => {
     const baseExpenses = [...PL_DATA.expenses];
-    const filteredTransactions = allTransactions.filter(t => {
-      const tDate = new Date(t.date);
-      const tMonth = tDate.toISOString().slice(0, 7);
-      return t.name !== '계좌이체' && tMonth === currentMonth;
-    });
     
     // Add new transactions to categories and their details
+    // Helper to determine category robustly using vendorList
+    const getCategoryFromVendor = (t: Transaction) => {
+      // 1. Check vendor list mapping first
+      for (const [cat, vendors] of Object.entries(vendorList)) {
+        // Normalize vendor names for robust matching
+        const normalizedVendors = (vendors as string[])
+            .map(v => v.trim().toLowerCase())
+            .filter(v => v !== '');
+        const normalizedTName = t.name.trim().toLowerCase();
+        
+        if (normalizedVendors.length > 0 && normalizedVendors.some(v => normalizedTName.includes(v))) {
+          // Map detailed categories back to main categories
+          if (['2-1. 원자재(육류)', '2-2. 식자재&공산품', '주류&음료'].includes(cat)) {
+              return '매출원가';
+          }
+          return cat;
+        }
+      }
+      // 2. Mapping to aggregated categories
+      if (['매출원가', '주류&음료', '2-1. 원자재(육류)', '2-2. 식자재&공산품'].includes(t.category)) {
+          return '매출원가';
+      }
+      if (t.category === '세금') return '세금 예수금';
+      if (t.category === '임대료') return '임대료';
+      
+      return t.category;
+    };
+
     const updatedExpenses = baseExpenses.map(cat => {
+      // Calculate transactions for this category
+      const catTransactions = filteredTransactions.filter(t => {
+        const catName = getCategoryFromVendor(t);
+        return catName === cat.name;
+      });
+
       // Special handling for Labor Costs (인건비) - Automatic calculation
       if (cat.name === '인건비') {
         const updatedDetails = cat.details?.map(detail => {
@@ -817,11 +1000,23 @@ export default function App() {
         };
       }
 
+      // Explicitly handle 임대료
+      if (cat.name === '임대료') {
+        const rentAmount = allTransactions.find(t => t.name === '임대료' && t.month === currentMonth)?.amount || 0;
+        return {
+          ...cat,
+          amount: rentAmount
+        };
+      }
+
       // Special handling for Tax Withholding (세금 예수금) - Automatic calculation
       if (cat.name === '세금 예수금') {
-        const vatAmount = currentTotalSales * 0.05;
-        const incomeTaxAmount = currentTotalSales * 0.02;
-        const totalTaxAmount = vatAmount + incomeTaxAmount;
+        console.log('DEBUG: 세금 예수금 - dailySalesTotal:', dailySalesTotal);
+        const vatAmount = dailySalesTotal > 0 ? dailySalesTotal * 0.05 : 0;
+        const incomeTaxAmount = dailySalesTotal > 0 ? dailySalesTotal * 0.02 : 0;
+        const totalManualTaxAmount = catTransactions.reduce((sum, t) => sum + t.amount, 0);
+        const totalTaxAmount = vatAmount + incomeTaxAmount + totalManualTaxAmount;
+        console.log('DEBUG: 세금 예수금 - totalTaxAmount:', totalTaxAmount);
 
         const updatedDetails = cat.details?.map(detail => {
           if (detail.name === '부가세 예수금') {
@@ -840,7 +1035,7 @@ export default function App() {
         };
       }
 
-      const catTransactions = filteredTransactions.filter(t => t.category === cat.name);
+      if (cat.name === '임대료') console.log('DEBUG: 임대료 catTransactions', catTransactions);
       let additionalAmount = catTransactions.reduce((sum, t) => sum + t.amount, 0);
       
       // Special handling for Card Fees - Automatic calculation
@@ -854,28 +1049,32 @@ export default function App() {
 
       let updatedDetails = cat.details;
 
-      if (['매출원가', '마케팅', '고정비'].includes(cat.name)) {
+      if (cat.name === '매출원가') {
         updatedDetails = cat.details?.map(detail => {
           let detailTransactions = [];
           if (cat.name === '매출원가') {
-            // Replicate P&L mapping logic exactly
             const cleanTName = (t: any) => t.name.trim();
             const cleanTNameNoPrefix = (t: any) => cleanTName(t).replace(/^[0-9.-]+\s*/, '').trim();
 
-            // 1. Determine target row ID for each transaction
             detailTransactions = filteredTransactions.filter(t => {
+              const normalized = getCategoryFromVendor(t);
+              if (normalized !== cat.name) return false;
               if (!['매출원가', '주류&음료', '2-1. 원자재(육류)', '2-2. 식자재&공산품'].includes(t.category) || t.name === '계좌이체') return false;
 
               // Find matching row in DAILY_LEDGER_DATA or dynamic vendor list
               const tName = cleanTName(t);
               const tNameNoPrefix = cleanTNameNoPrefix(t);
-
-              // Check if it matches a specific row name
+              
               let matchingRowId = '';
               
-              if (t.category === '주류&음료') {
-                if (tName.includes('주류')) matchingRowId = '2-3';
-                else if (tName.includes('음료')) matchingRowId = '2-4';
+              if (t.category === '2-1. 원자재(육류)') {
+                matchingRowId = '2-1';
+              } else if (t.category === '2-2. 식자재&공산품') {
+                matchingRowId = '2-2';
+              } else if (t.category === '주류&음료') {
+                if (tName.includes('주류') || t.name === '주류') matchingRowId = '2-3';
+                else if (tName.includes('음료') || t.name === '음료') matchingRowId = '2-4';
+                else matchingRowId = '2-3'; // Default to 주류 if unspecified but in category
               }
 
               // Check static rows
@@ -889,9 +1088,8 @@ export default function App() {
                 if (staticMatch) matchingRowId = staticMatch.id;
               }
 
-              // Check dynamic vendors (this is how P&L maps them)
+              // Check dynamic vendors
               if (!matchingRowId) {
-                // Check all possible COGS vendor lists
                 const cogsCategories = ['매출원가', '주류&음료', '2-1. 원자재(육류)', '2-2. 식자재&공산품'];
                 for (const catKey of cogsCategories) {
                   const vendors = vendorList[catKey] || [];
@@ -900,7 +1098,6 @@ export default function App() {
                     return cleanV === tNameNoPrefix.replace(/\s+/g, '') || v.replace(/\s+/g, '') === tName.replace(/\s+/g, '');
                   });
                   if (vendorIndex !== -1) {
-                    // Determine which subgroup the vendor belongs to
                     if (catKey === '주류&음료') {
                       matchingRowId = vendors[vendorIndex].includes('주류') ? '2-3' : '2-4';
                     } else {
@@ -911,70 +1108,50 @@ export default function App() {
                   }
                 }
               }
-
-              // Fallback logic
-              if (!matchingRowId) {
-                // Try to find a generic "Other" or "Miscellaneous" row in COGS
-                const otherRow = DAILY_LEDGER_DATA.find(r => 
-                  r.id.startsWith('2-') && 
-                  (r.category.includes('기타') || r.category.includes('소모품')) &&
-                  !r.isHeader && !r.isSubtotal
-                );
-                if (otherRow) {
-                  matchingRowId = otherRow.id;
-                } else {
-                  // If no generic row, use the first child of the appropriate subgroup
-                  const subgroupId = t.name.includes('육류') || t.name.includes('고기') ? '2-1' : '2-2';
-                  const firstChild = DAILY_LEDGER_DATA.find(r => r.id.startsWith(subgroupId + '-') && !r.isSubtotal);
-                  if (firstChild) matchingRowId = firstChild.id;
-                }
-              }
-
-              // Now check if this transaction belongs to the current KPI detail
-              if (detail.name === '2-1. 원자재(육류)') {
-                return matchingRowId.startsWith('2-1');
-              } else if (detail.name === '2-2. 식자재&공산품') {
-                return matchingRowId.startsWith('2-2');
-              } else if (detail.name === '주류 원가') {
-                return matchingRowId === '2-3';
-              } else if (detail.name === '음료 원가') {
-                return matchingRowId === '2-4';
-              }
-              return false;
+              
+              return (matchingRowId === '2-1' && detail.name === '2-1. 원자재(육류)') ||
+                     (matchingRowId === '2-2' && detail.name === '2-2. 식자재&공산품') ||
+                     (matchingRowId === '2-3' && detail.name === '주류 원가') ||
+                     (matchingRowId === '2-4' && detail.name === '음료 원가') ||
+                     (detail.name === '기타원가' && !matchingRowId);
             });
           } else {
-            detailTransactions = filteredTransactions.filter(t => t.category === cat.name && t.name === detail.name);
+            detailTransactions = filteredTransactions.filter(t => {
+              const catName = getCategoryFromVendor(t);
+              return catName === cat.name && t.name === detail.name;
+            });
           }
           const amount = detailTransactions.reduce((sum, t) => sum + t.amount, 0);
           return { ...detail, amount, ratio: 0 };
         }) || [];
-        
-        // Add any transactions that have a name NOT in the detail list (except for COGS which has a catch-all)
-        if (cat.name !== '매출원가') {
-          const detailNames = cat.details?.map(d => d.name) || [];
-          const unknownTransactions = filteredTransactions.filter(t => t.category === cat.name && !detailNames.includes(t.name));
-          if (unknownTransactions.length > 0) {
-            const unknownAmount = unknownTransactions.reduce((sum, t) => sum + t.amount, 0);
-            updatedDetails.push({ name: '기타/삭제된 거래처', amount: unknownAmount, ratio: 0 });
-          }
-        }
       } else {
-        // For other categories (like 매출, 카드수수료), keep existing logic or just use existing details
-        updatedDetails = cat.details?.map(detail => {
-          const detailTransactions = filteredTransactions.filter(t => t.category === cat.name && t.name === detail.name);
-          const detailAdditionalAmount = detailTransactions.reduce((sum, t) => sum + t.amount, 0);
-          return {
-            ...detail,
-            amount: detail.amount + detailAdditionalAmount
-          };
+        // For other categories (like 매출, 카드수수료), build details dynamically 
+        // to include predefined details and any custom transaction names.
+        const detailsMap: Record<string, number> = {};
+        cat.details?.forEach(d => {
+           detailsMap[d.name] = d.amount || 0;
         });
+
+        catTransactions.forEach(t => {
+           if (detailsMap[t.name] === undefined) {
+               detailsMap[t.name] = 0;
+           }
+           detailsMap[t.name] += t.amount;
+        });
+
+        updatedDetails = Object.entries(detailsMap).map(([name, amount]) => ({
+            name,
+            amount,
+            ratio: 0
+        }));
       }
 
       // If we have details, the total should be the sum of details. 
       // Otherwise, use additionalAmount (which handles categories without details like Card Fees)
-      const totalAmount = (updatedDetails && updatedDetails.length > 0)
-        ? updatedDetails.reduce((sum, d) => sum + d.amount, 0)
-        : additionalAmount;
+      let totalAmount = additionalAmount;
+      if (updatedDetails && updatedDetails.length > 0) {
+          totalAmount = updatedDetails.reduce((sum, d) => sum + d.amount, 0);
+      }
 
       return {
         ...cat,
@@ -988,38 +1165,41 @@ export default function App() {
       ...cat,
       ratio: Number(((cat.amount / currentTotalSales) * 100).toFixed(1))
     }));
-  }, [allTransactions, currentTotalSales, salaryBreakdown, vendorList]);
+  }, [allTransactions, currentTotalSales, salaryBreakdown, vendorList, currentMonth, dailySalesTotal]);
 
   const currentSummary = useMemo(() => {
     const totalSales = currentTotalSales;
 
-    const totalExpenses = currentExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const cogs = currentExpenses.find(e => e.name === '매출원가')?.amount || 0;
-    const labor = currentExpenses.find(e => e.name === '인건비')?.amount || 0;
-    
-    const fixedCategory = currentExpenses.find(e => e.name === '고정비');
-    const rent = fixedCategory?.details?.find((d: any) => d.name === '임대료')?.amount || 0;
-    const fixedCosts = (fixedCategory?.amount || 0) - rent;
-    
-    const variableCosts = currentExpenses.find(e => e.name === '변동비')?.amount || 0;
-    const marketingCosts = currentExpenses.find(e => e.name === '마케팅')?.amount || 0;
-    
-    // Calculate Card Fees from total card sales
-    const cardSales = allTransactions
-      .filter(t => t.category === '매출' && t.name === '카드')
-      .reduce((sum, t) => sum + t.amount, 0);
-    const cardFees = cardSales * 0.019;
+    const gamjatang = filteredTransactions.filter(t => t.category === '2-1. 원자재(육류)').reduce((sum, t) => sum + t.amount, 0);
+    const supply = filteredTransactions.filter(t => t.category === '2-2. 식자재&공산품').reduce((sum, t) => sum + t.amount, 0);
+    const alcohol = filteredTransactions.filter(t => t.category === '주류&음료').reduce((sum, t) => sum + t.amount, 0);
+    const cogs = gamjatang + supply + alcohol;
 
+    const labor = currentExpenses.find(e => e.name === '인건비')?.amount || 0;
+    const rent = currentExpenses.find(e => e.name === '임대료')?.amount || 0;
+    
+    const fixedCosts = filteredTransactions.filter(t => t.category === '고정비').reduce((sum, t) => sum + t.amount, 0);
+    const marketingCosts = filteredTransactions.filter(t => t.category === '마케팅').reduce((sum, t) => sum + t.amount, 0);
+    
+    const cardSalesTotal = Object.values(sales).reduce((sum: number, s: any) => sum + (Number(s.card) || 0), 0);
+    const cardFees = Number(cardSalesTotal) * 0.019;
+    
+    // Add cardFees directly to variableCosts so currentSummary perfectly matches the variable cost dashboard view
+    const variableCosts = filteredTransactions.filter(t => t.category === '변동비').reduce((sum, t) => sum + t.amount, 0) + cardFees;
     const taxes = currentExpenses.find(e => e.name === '세금 예수금')?.amount || 0;
 
+    const totalExpenses = cogs + labor + rent + fixedCosts + variableCosts + marketingCosts + taxes;
     const grossProfit = totalSales - cogs;
-    const operatingProfit = totalSales - (cogs + labor + rent + fixedCosts + variableCosts + marketingCosts);
-    const netProfit = operatingProfit - cardFees - taxes;
+    const operatingProfit = totalSales - totalExpenses;
+    const netProfit = totalSales - totalExpenses;
 
     return {
       ...PL_DATA.summary,
       totalSales,
       cogs,
+      gamjatang,
+      supply,
+      alcohol,
       labor,
       rent,
       fixedCosts,
@@ -1029,9 +1209,14 @@ export default function App() {
       taxes,
       grossProfit,
       operatingProfit,
-      netProfit
+      netProfit,
+      debug: {
+        totalSales,
+        totalExpenses,
+        expenses: currentExpenses.map(e => ({ name: e.name, amount: e.amount }))
+      }
     };
-  }, [currentExpenses, transactions]);
+  }, [currentExpenses, filteredTransactions, sales, currentTotalSales]);
 
   const expenseDataForChart = useMemo(() => {
     return currentExpenses.map((item, index) => ({
@@ -1124,8 +1309,9 @@ export default function App() {
       amount,
       status: newExpense.status,
       author: user?.name,
-      month: currentMonth
-    };
+      month: currentMonth,
+  uid: user.id
+};
 
     // Update vendor list if new
     if (!vendorList[newExpense.category]?.includes(newExpense.name)) {
@@ -1275,6 +1461,9 @@ export default function App() {
           netProfit: currentSummary.netProfit || 0,
           operatingProfit: currentSummary.operatingProfit || 0,
           cogs: currentSummary.cogs || 0,
+          gamjatang: currentSummary.gamjatang || 0,
+          supply: currentSummary.supply || 0,
+          alcohol: currentSummary.alcohol || 0,
           labor: currentSummary.labor || 0,
           rent: currentSummary.rent || 0,
           fixedCosts: currentSummary.fixedCosts || 0,
@@ -1287,7 +1476,8 @@ export default function App() {
         data: sanitizeForFirestore({
           transactions,
           cashBalanceData,
-          salaryState
+          salaryState,
+          sales
         })
       };
       
@@ -1310,8 +1500,8 @@ export default function App() {
       const nextCashRef = doc(db, 'cashBalanceData', nextMonthStr);
       const nextCashData = generateInitialCashData(nextMonthStr, user.id);
       
-      // Carry over final balance
-      const finalBalance = cashBalanceData.finalBalance || 0;
+      // Carry over final balance - Resets to 0 per user request
+      const finalBalance = 0;
       nextCashData.carryover = finalBalance;
       if (nextCashData.rows && nextCashData.rows.length > 0) {
         nextCashData.rows[0].prevBalance = finalBalance;
@@ -1325,9 +1515,21 @@ export default function App() {
       const nextSalaryData = generateInitialSalaryState(nextMonthStr, user.id);
       batch.set(nextSalaryRef, sanitizeForFirestore(nextSalaryData));
 
+      // Advance global business date to the 1st of the next month
+      const nextBusinessDateStr = `${nextMonthStr}-01`;
+      batch.set(doc(db, 'settings', 'global'), { businessDateStr: nextBusinessDateStr }, { merge: true });
+
       console.log("Committing batch...");
       await batch.commit();
       console.log("Batch committed successfully!");
+
+      // Safely delete old transactions after archiving
+      try {
+        await Promise.all(transactions.map(t => deleteDoc(doc(db, 'transactions', t.id))));
+        console.log("Old transactions deleted successfully.");
+      } catch (e) {
+        console.error("Failed to delete old transactions:", e);
+      }
 
       // Force update localStorage and state
       localStorage.setItem('pyeobanjib-current-month', nextMonthStr);
@@ -1340,6 +1542,7 @@ export default function App() {
       setTransactions([]);
       setCashBalanceData(nextCashData);
       setSalaryState(nextSalaryData);
+      setSales({});
 
       alert(`${currentMonth.replace('-', '년 ')}월 마감이 완료되었습니다. ${nextMonthStr.replace('-', '년 ')}월 업무를 시작합니다.`);
     } catch (e) {
@@ -1354,7 +1557,34 @@ export default function App() {
 
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isVendorModalOpen, setIsVendorModalOpen] = useState(false);
+  const clearAllData = async () => {
+    if (!user) return;
+    if (!window.confirm("정말로 모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) return;
+
+    try {
+      // Delete transactions
+      const transactionsSnap = await getDocs(collection(db, 'transactions'));
+      await Promise.all(transactionsSnap.docs.map(d => deleteDoc(d.ref)));
+
+      // Delete cashBalanceData
+      const cashSnap = await getDocs(collection(db, 'cashBalanceData'));
+      await Promise.all(cashSnap.docs.map(d => deleteDoc(d.ref)));
+
+      // Delete salaryState
+      const salarySnap = await getDocs(collection(db, 'salaryState'));
+      await Promise.all(salarySnap.docs.map(d => deleteDoc(d.ref)));
+
+      // Delete archives (user specific)
+      const archivesSnap = await getDocs(query(collection(db, 'archives'), where('uid', '==', user.id)));
+      await Promise.all(archivesSnap.docs.map(d => deleteDoc(d.ref)));
+
+      alert("모든 데이터가 삭제되었습니다.");
+      window.location.reload();
+    } catch (error) {
+      console.error("Error clearing data:", error);
+      alert("데이터 삭제 중 오류가 발생했습니다.");
+    }
+  };
 
   const handleUpdateVendor = async (category: string, oldName: string, newName: string) => {
     if (!user) return;
@@ -1415,7 +1645,7 @@ export default function App() {
   };
 
   const handleAddVendor = async (category: string, vendorName: string) => {
-    if (!user) return;
+    if (!user || !vendorName.trim()) return;
     try {
       const newVendorList = { ...vendorList };
       if (!newVendorList[category]) {
@@ -1432,22 +1662,7 @@ export default function App() {
 
   const [resetError, setResetError] = useState<string | null>(null);
 
-  // One-time cleanup to remove '배달의민족' from '마케팅' if it exists in Firestore
-  useEffect(() => {
-    const cleanupBaemin = async () => {
-      if (user && vendorList && vendorList['마케팅'] && vendorList['마케팅'].includes('배달의민족')) {
-        try {
-          const newVendorList = { ...vendorList };
-          newVendorList['마케팅'] = newVendorList['마케팅'].filter(v => v !== '배달의민족');
-          await setDoc(doc(db, 'settings', 'global'), { vendorList: newVendorList }, { merge: true });
-          console.log("Removed '배달의민족' from '마케팅' vendor list.");
-        } catch (e) {
-          console.error("Failed to cleanup vendor list:", e);
-        }
-      }
-    };
-    cleanupBaemin();
-  }, [user, vendorList]);
+
 
   const handleResetAllData = async () => {
     if (!user) return;
@@ -1456,11 +1671,13 @@ export default function App() {
       setIsClosingLoading(true);
       console.log("Starting full data reset...");
       
-      const collectionsToDelete = ['transactions', 'cashBalanceData', 'salaryState'];
-      
+      const collectionsToDelete = ['transactions', 'cashBalanceData', 'salaryState', 'archives'];
+
       for (const collName of collectionsToDelete) {
-        console.log(`Fetching documents from ${collName}...`);
-        const snapshot = await getDocs(collection(db, collName));
+        console.log(`Fetching documents from ${collName} for user ${user.id}...`);
+        const q = collection(db, collName);
+            
+        const snapshot = await getDocs(q);
         const docs = snapshot.docs;
         console.log(`Found ${docs.length} documents in ${collName}`);
         
@@ -1474,33 +1691,46 @@ export default function App() {
         }
       }
       
-      // We no longer delete settings/global to preserve vendor list and other configs
-      // that might be relevant to the preserved archives.
+      // 2. Reset settings (vendor list)
+      await setDoc(doc(db, 'settings', 'global'), { 
+        vendorList: {
+          '매출': [],
+          '2-1. 원자재(육류)': [],
+          '2-2. 식자재&공산품': [],
+          '주류&음료': [],
+          '인건비': [],
+          '변동비': [],
+          '마케팅': [],
+          '카드수수료(1.9%)': [],
+          '고정비': []
+        },
+        businessDateStr: '2026-04-01'
+      }, { merge: true });
       
       console.log("Reset complete. Logging out and reloading...");
       setIsResetConfirmOpen(false);
       
       // 1. Clear local storage for a clean state
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('pyeobanjib-')) {
-          keysToRemove.push(key);
-        }
+      localStorage.removeItem('pyeobanjib-current-month');
+      
+      const now = new Date();
+      if (now.getHours() < 10) {
+        now.setDate(now.getDate() - 1);
       }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
+      const resetMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       
       // 2. Reset local React state
       setTransactions([]);
-      setCashBalanceData(generateInitialCashData(currentMonth, user.id));
-      setSalaryState(generateInitialSalaryState(currentMonth, user.id));
+      setCashBalanceData(generateInitialCashData(resetMonthStr, user.id));
+      setSalaryState(generateInitialSalaryState(resetMonthStr, user.id));
+      setSales({});
       setArchives([]);
       
       // 3. Close modal and show success
       setIsResetConfirmOpen(false);
       setIsClosingLoading(false);
       alert("데이터가 성공적으로 초기화되었습니다.");
-      window.location.reload();
+      window.location.href = window.location.origin;
       
     } catch (e: any) {
       console.error("Reset error:", e);
@@ -1673,13 +1903,13 @@ export default function App() {
                 손익계산서
               </button>
               <button 
-                onClick={() => setActiveTab('kpi')}
+                onClick={() => setActiveTab('performance-results')}
                 className={cn(
                   "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
-                  activeTab === 'kpi' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                  activeTab === 'performance-results' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
                 )}
               >
-                운영실적
+                실적결과
               </button>
               <button 
                 onClick={() => setActiveTab('salary')}
@@ -1731,17 +1961,6 @@ export default function App() {
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">시스템 설정</p>
                       </div>
                       
-                      <button 
-                        onClick={() => {
-                          setIsSettingsOpen(false);
-                          setIsVendorModalOpen(true);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        거래처 관리
-                      </button>
-
                       <div className="h-px bg-gray-50 my-1" />
 
                       <button 
@@ -1830,6 +2049,100 @@ export default function App() {
           <div className="space-y-6">
             {(() => {
               const desanitized = desanitizeArchiveData(viewingArchive);
+              const archiveTransactions = desanitized.data.transactions || [];
+              const archiveExpenses = PL_DATA.expenses.map(cat => {
+                if (cat.name === '인건비') {
+                  const employeesTotal = (desanitized.data.salaryState?.employees || []).reduce((sum: number, emp: any) => sum + (emp.totalSalary || 0), 0);
+                  const partTimeTotal = (desanitized.data.salaryState?.partTimeDays || []).reduce((sum: number, day: any) => {
+                    if (Array.isArray(day)) return sum + day.reduce((dSum: number, r: any) => dSum + (r.amount || 0), 0);
+                    return sum;
+                  }, 0);
+                  const dispatchTotal = (desanitized.data.salaryState?.dispatchDays || []).reduce((sum: number, day: any) => {
+                    if (Array.isArray(day)) return sum + day.reduce((dSum: number, r: any) => dSum + (r.amount || 0), 0);
+                    return sum;
+                  }, 0);
+                  const insuranceTotal = (desanitized.data.salaryState?.nationalHealth || 0) + (desanitized.data.salaryState?.nationalPension || 0) + (desanitized.data.salaryState?.employmentInsurance || 0) + (desanitized.data.salaryState?.industrialAccidentInsurance || 0);
+
+                  return {
+                    ...cat,
+                    amount: employeesTotal + partTimeTotal + dispatchTotal + insuranceTotal,
+                    details: cat.details?.map(detail => {
+                      if (detail.name === '직원급여') return { ...detail, amount: employeesTotal };
+                      if (detail.name === '알바급여') return { ...detail, amount: partTimeTotal };
+                      if (detail.name === '파출급여') return { ...detail, amount: dispatchTotal };
+                      if (detail.name === '4대보험') return { ...detail, amount: insuranceTotal };
+                      return detail;
+                    })
+                  };
+                }
+                if (cat.name === '세금 예수금') {
+                  const vatAmount = (desanitized.summary.totalSales || 0) * 0.05;
+                  const incomeTaxAmount = (desanitized.summary.totalSales || 0) * 0.02;
+                  return {
+                    ...cat,
+                    amount: vatAmount + incomeTaxAmount,
+                    details: cat.details?.map(detail => {
+                      if (detail.name === '부가세 예수금') return { ...detail, amount: vatAmount };
+                      if (detail.name === '종소세 예수금') return { ...detail, amount: incomeTaxAmount };
+                      return detail;
+                    })
+                  };
+                }
+                const catTransactions = archiveTransactions.filter((t: any) => t.category === cat.name);
+                let amount = catTransactions.reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+                if (cat.name === '카드수수료(1.9%)') {
+                  const cardSales = archiveTransactions.filter((t: any) => t.category === '매출' && t.name === '카드').reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+                  amount = Math.max(amount, cardSales * 0.019);
+                }
+                const detailsUpdated = cat.details?.map(detail => {
+                    const detailName = detail.name === '2-1. 원자재(육류)' ? '[육류 및 육수 재료]' : 
+                                       detail.name === '2-2. 식자재&공산품' ? '[식자재&공산품 소계]' : detail.name;
+                    // Fallback to new category match for detail items in recent archives
+                    let detailTransactions = archiveTransactions.filter((t: any) => t.category === detail.name);
+                    if (detailTransactions.length === 0) {
+                        detailTransactions = catTransactions.filter((t: any) => t.name === detailName);
+                    }
+                    return { ...detail, amount: detailTransactions.reduce((sum: number, t: any) => sum + (t.amount || 0), 0) };
+                  }) || [];
+                return {
+                  ...cat,
+                  amount: detailsUpdated.length > 0 ? detailsUpdated.reduce((sum: number, d: any) => sum + d.amount, 0) : amount,
+                  details: detailsUpdated
+                };
+              });
+
+              const archiveGamjatang = archiveExpenses.find(e => e.name === '매출원가')?.details?.find(d => d.name === '2-1. 원자재(육류)')?.amount || 0;
+              const archiveSupply = archiveExpenses.find(e => e.name === '매출원가')?.details?.find(d => d.name === '2-2. 식자재&공산품')?.amount || 0;
+              const archiveAlcohol = (archiveExpenses.find(e => e.name === '매출원가')?.details?.find(d => d.name === '주류 원가')?.amount || 0) + 
+                                     (archiveExpenses.find(e => e.name === '매출원가')?.details?.find(d => d.name === '음료 원가')?.amount || 0);
+              const archiveSales = desanitized.data.sales || {};
+              const actualSalesTotal = Number(Object.values(archiveSales).reduce((sum: any, s: any) => sum + (s.delivery || 0) + (s.cash || 0) + (s.card || 0), 0));
+              
+              // Override summary values dynamically to fix past corrupted archives
+              desanitized.summary.totalSales = actualSalesTotal;
+              
+              // Recalculate cogs
+              const cogsGamjatang = (desanitized.summary as any).gamjatang ?? archiveGamjatang;
+              const cogsSupply = (desanitized.summary as any).supply ?? archiveSupply;
+              const cogsAlcohol = (desanitized.summary as any).alcohol ?? archiveAlcohol;
+              desanitized.summary.cogs = cogsGamjatang + cogsSupply + cogsAlcohol;
+
+              // Recalculate taxes based on updated sales
+              const vatAmount = actualSalesTotal * 0.05;
+              const incomeTaxAmount = actualSalesTotal * 0.02;
+              const totalManualTaxAmount = (archiveTransactions || []).filter((t: any) => t.category === '세금 예수금').reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+              desanitized.summary.taxes = vatAmount + incomeTaxAmount + totalManualTaxAmount;
+              
+              // Recalculate operating profit to reflect actual sales
+              const overrideExpenses = (desanitized.summary.cogs || 0) + 
+                                       (desanitized.summary.labor || 0) + 
+                                       (desanitized.summary.rent || 0) + 
+                                       (desanitized.summary.fixedCosts || 0) + 
+                                       (desanitized.summary.variableCosts || 0) + 
+                                       (desanitized.summary.marketingCosts || 0) + 
+                                       (desanitized.summary.taxes || 0);
+              desanitized.summary.operatingProfit = actualSalesTotal - overrideExpenses;
+
               return (
                 <>
                   <div className="flex items-center justify-between bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
@@ -1850,45 +2163,6 @@ export default function App() {
                     </button>
                   </div>
                   
-                  <nav className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl w-fit">
-                    <button 
-                      onClick={() => setActiveTab('cash')}
-                      className={cn(
-                        "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
-                        activeTab === 'cash' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                      )}
-                    >
-                      현금시재
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab('pl')}
-                      className={cn(
-                        "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
-                        activeTab === 'pl' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                      )}
-                    >
-                      손익계산서
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab('kpi')}
-                      className={cn(
-                        "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
-                        activeTab === 'kpi' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                      )}
-                    >
-                      운영실적
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab('salary')}
-                      className={cn(
-                        "px-4 py-1.5 text-sm font-bold rounded-lg transition-all",
-                        activeTab === 'salary' ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-                      )}
-                    >
-                      직원급여
-                    </button>
-                  </nav>
-
                   {(!desanitized || !desanitized.data) ? (
                     <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-gray-200">
                       <p className="text-gray-500 font-bold">데이터를 불러올 수 없습니다.</p>
@@ -1899,26 +2173,20 @@ export default function App() {
                         돌아가기
                       </button>
                     </div>
-                  ) : activeTab === 'cash' ? (
-                    <CashBalanceSheet data={desanitized.data.cashBalanceData} setData={() => {}} isReadOnly user={user} />
-                  ) : activeTab === 'pl' ? (
-                    <PLDashboard 
-                      user={user}
-                      currentMonth={desanitized.month.replace('.', '-')}
-                      currentSummary={desanitized.summary}
-                      currentExpenses={PL_DATA.expenses.map(cat => {
+                  ) : (() => {
+                      const archiveExpenses = PL_DATA.expenses.map(cat => {
                         if (cat.name === '인건비') {
-                          const employeesTotal = desanitized.data.salaryState.employees.reduce((sum: number, emp: any) => sum + emp.totalSalary, 0);
-                          const partTimeTotal = desanitized.data.salaryState.partTimeDays.reduce((sum: number, day: any) => {
-                            if (Array.isArray(day)) return sum + day.reduce((dSum: number, r: any) => dSum + r.amount, 0);
+                          const employeesTotal = (desanitized.data.salaryState?.employees || []).reduce((sum: number, emp: any) => sum + (emp.totalSalary || 0), 0);
+                          const partTimeTotal = (desanitized.data.salaryState?.partTimeDays || []).reduce((sum: number, day: any) => {
+                            if (Array.isArray(day)) return sum + day.reduce((dSum: number, r: any) => dSum + (r.amount || 0), 0);
                             return sum;
                           }, 0);
-                          const dispatchTotal = desanitized.data.salaryState.dispatchDays.reduce((sum: number, day: any) => {
-                            if (Array.isArray(day)) return sum + day.reduce((dSum: number, r: any) => dSum + r.amount, 0);
+                          const dispatchTotal = (desanitized.data.salaryState?.dispatchDays || []).reduce((sum: number, day: any) => {
+                            if (Array.isArray(day)) return sum + day.reduce((dSum: number, r: any) => dSum + (r.amount || 0), 0);
                             return sum;
                           }, 0);
-                          const insuranceTotal = desanitized.data.salaryState.nationalHealth + desanitized.data.salaryState.nationalPension + desanitized.data.salaryState.employmentInsurance + desanitized.data.salaryState.industrialAccidentInsurance;
-                          
+                          const insuranceTotal = (desanitized.data.salaryState?.nationalHealth || 0) + (desanitized.data.salaryState?.nationalPension || 0) + (desanitized.data.salaryState?.employmentInsurance || 0) + (desanitized.data.salaryState?.industrialAccidentInsurance || 0);
+
                           return {
                             ...cat,
                             amount: employeesTotal + partTimeTotal + dispatchTotal + insuranceTotal,
@@ -1932,8 +2200,8 @@ export default function App() {
                           };
                         }
                         if (cat.name === '세금 예수금') {
-                          const vatAmount = desanitized.summary.totalSales * 0.05;
-                          const incomeTaxAmount = desanitized.summary.totalSales * 0.02;
+                          const vatAmount = (desanitized.summary.totalSales || 0) * 0.05;
+                          const incomeTaxAmount = (desanitized.summary.totalSales || 0) * 0.02;
                           return {
                             ...cat,
                             amount: vatAmount + incomeTaxAmount,
@@ -1944,161 +2212,581 @@ export default function App() {
                             })
                           };
                         }
-                        const catTransactions = (desanitized.data.transactions || []).filter((t: any) => t.category === cat.name);
-                        let amount = catTransactions.reduce((sum: number, t: any) => sum + t.amount, 0);
+                        const catTransactions = archiveTransactions.filter((t: any) => t.category === cat.name);
+                        let amount = catTransactions.reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
                         if (cat.name === '카드수수료(1.9%)') {
-                          const cardSales = (desanitized.data.transactions || []).filter((t: any) => t.category === '매출' && t.name === '카드').reduce((sum: number, t: any) => sum + t.amount, 0);
+                          const cardSales = archiveTransactions.filter((t: any) => t.category === '매출' && t.name === '카드').reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
                           amount = Math.max(amount, cardSales * 0.019);
                         }
-                        return {
-                          ...cat,
-                          amount,
-                          details: cat.details?.map(detail => {
+                        const detailsUpdated = cat.details?.map(detail => {
                             const detailName = detail.name === '2-1. 원자재(육류)' ? '[육류 및 육수 재료]' : 
                                                detail.name === '2-2. 식자재&공산품' ? '[식자재&공산품 소계]' : detail.name;
                             const detailTransactions = catTransactions.filter((t: any) => t.name === detailName);
-                            return { ...detail, amount: detailTransactions.reduce((sum: number, t: any) => sum + t.amount, 0) };
-                          })
-                        };
-                      })}
-                      salaryBreakdown={{
-                        employeesTotal: desanitized.data.salaryState.employees.reduce((sum: number, emp: any) => sum + emp.totalSalary, 0),
-                        partTimeTotal: desanitized.data.salaryState.partTimeDays.reduce((sum: number, day: any) => {
-                          if (Array.isArray(day)) {
-                            return sum + day.reduce((dSum: number, r: any) => dSum + r.amount, 0);
-                          }
-                          return sum;
-                        }, 0),
-                        dispatchTotal: desanitized.data.salaryState.dispatchDays.reduce((sum: number, day: any) => {
-                          if (Array.isArray(day)) {
-                            return sum + day.reduce((dSum: number, r: any) => dSum + r.amount, 0);
-                          }
-                          return sum;
-                        }, 0),
-                        insuranceTotal: desanitized.data.salaryState.nationalHealth + desanitized.data.salaryState.nationalPension + desanitized.data.salaryState.employmentInsurance + desanitized.data.salaryState.industrialAccidentInsurance,
-                        total: desanitized.summary.labor
-                      }}
-                      transactions={desanitized.data.transactions}
-                      onDeleteTransaction={() => {}}
-                      onEditTransaction={() => {}}
-                      isModalOpen={false}
-                      setIsModalOpen={() => {}}
-                      newExpense={{ category: '', name: '', amount: '', date: '', status: 'unpaid' }}
-                      setNewExpense={() => {}}
-                      handleAddExpense={() => {}}
-                      vendorList={{}}
-                      isReadOnly
-                      getBusinessDate={getBusinessDate}
-                      handleDailyClose={handleDailyCloseClick}
-                      canDailyClose={canDailyClose}
-                    />
-                  ) : activeTab === 'kpi' ? (
-                    <KPIDashboard 
-                      currentSummary={desanitized.summary}
-                      currentExpenses={PL_DATA.expenses.map(cat => {
-                        if (cat.name === '인건비') {
-                          const employeesTotal = desanitized.data.salaryState.employees.reduce((sum: number, emp: any) => sum + emp.totalSalary, 0);
-                          const partTimeTotal = desanitized.data.salaryState.partTimeDays.reduce((sum: number, day: any) => {
-                            if (Array.isArray(day)) return sum + day.reduce((dSum: number, r: any) => dSum + r.amount, 0);
-                            return sum;
-                          }, 0);
-                          const dispatchTotal = desanitized.data.salaryState.dispatchDays.reduce((sum: number, day: any) => {
-                            if (Array.isArray(day)) return sum + day.reduce((dSum: number, r: any) => dSum + r.amount, 0);
-                            return sum;
-                          }, 0);
-                          const insuranceTotal = desanitized.data.salaryState.nationalHealth + desanitized.data.salaryState.nationalPension + desanitized.data.salaryState.employmentInsurance + desanitized.data.salaryState.industrialAccidentInsurance;
-                          
-                          return {
-                            ...cat,
-                            amount: employeesTotal + partTimeTotal + dispatchTotal + insuranceTotal,
-                            details: cat.details?.map(detail => {
-                              if (detail.name === '직원급여') return { ...detail, amount: employeesTotal };
-                              if (detail.name === '알바급여') return { ...detail, amount: partTimeTotal };
-                              if (detail.name === '파출급여') return { ...detail, amount: dispatchTotal };
-                              if (detail.name === '4대보험') return { ...detail, amount: insuranceTotal };
-                              return detail;
-                            })
-                          };
-                        }
-                        if (cat.name === '세금 예수금') {
-                          const vatAmount = desanitized.summary.totalSales * 0.05;
-                          const incomeTaxAmount = desanitized.summary.totalSales * 0.02;
-                          return {
-                            ...cat,
-                            amount: vatAmount + incomeTaxAmount,
-                            details: cat.details?.map(detail => {
-                              if (detail.name === '부가세 예수금') return { ...detail, amount: vatAmount };
-                              if (detail.name === '종소세 예수금') return { ...detail, amount: incomeTaxAmount };
-                              return detail;
-                            })
-                          };
-                        }
-                        const catTransactions = (desanitized.data.transactions || []).filter((t: any) => t.category === cat.name);
-                        let amount = catTransactions.reduce((sum: number, t: any) => sum + t.amount, 0);
-                        if (cat.name === '카드수수료(1.9%)') {
-                          const cardSales = (desanitized.data.transactions || []).filter((t: any) => t.category === '매출' && t.name === '카드').reduce((sum: number, t: any) => sum + t.amount, 0);
-                          amount = Math.max(amount, cardSales * 0.019);
-                        }
+                            return { ...detail, amount: detailTransactions.reduce((sum: number, t: any) => sum + (t.amount || 0), 0) };
+                          }) || [];
                         return {
                           ...cat,
-                          amount,
-                          details: cat.details?.map(detail => {
-                            const detailName = detail.name === '2-1. 원자재(육류)' ? '[육류 및 육수 재료]' : 
-                                               detail.name === '2-2. 식자재&공산품' ? '[식자재&공산품 소계]' : detail.name;
-                            const detailTransactions = catTransactions.filter((t: any) => t.name === detailName);
-                            return { ...detail, amount: detailTransactions.reduce((sum: number, t: any) => sum + t.amount, 0) };
-                          })
+                          amount: detailsUpdated.length > 0 ? detailsUpdated.reduce((sum: number, d: any) => sum + d.amount, 0) : amount,
+                          details: detailsUpdated
                         };
-                      })}
-                      archives={archives}
-                      isReadOnly
-                    />
-                  ) : activeTab === 'salary' ? (
-                    <SalaryDashboard 
-                      user={user}
-                      currentMonth={desanitized.month.replace('.', '-')}
-                      salaryState={desanitized.data.salaryState}
-                      setSalaryState={() => {}}
-                      isReadOnly
-                    />
-                  ) : null}
+                      });
+
+                      const salaryState = desanitized.data.salaryState || {};
+                      const employees = salaryState.employees || [];
+                      const totalSalary = employees.reduce((acc: number, curr: any) => acc + (curr.totalSalary || 0), 0);
+                      const partTimeDays = salaryState.partTimeDays || [];
+                      const totalPartTime = partTimeDays.reduce((acc: number, sum: any) => acc + (Array.isArray(sum) ? sum.reduce((dAcc: number, d: any) => dAcc + (d.amount || 0), 0) : 0), 0);
+                      const dispatchDays = salaryState.dispatchDays || [];
+                      const totalDispatch = dispatchDays.reduce((acc: number, sum: any) => acc + (Array.isArray(sum) ? sum.reduce((dAcc: number, d: any) => dAcc + (d.amount || 0), 0) : 0), 0);
+                      const totalInsurance = (salaryState.nationalHealth || 0) + (salaryState.nationalPension || 0) + (salaryState.employmentInsurance || 0) + (salaryState.industrialAccidentInsurance || 0);
+
+                      return (
+                        <div className="flex flex-col gap-12 pb-20">
+                          {/* 1. 전체요약 대시보드 */}
+                          <div className="w-full">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">전체 요약</h2>
+                            <CurrentExpensesDashboard 
+                                title="전체 요약"
+                                items={[
+                                    {name: "일일 매출", amount: desanitized.summary.totalSales || 0},
+                                    {name: "인건비", amount: desanitized.summary.labor || 0},
+                                    {name: "감자탕&원재료", amount: (desanitized.summary as any).gamjatang ?? archiveGamjatang},
+                                    {name: "식자재&공산품", amount: (desanitized.summary as any).supply ?? archiveSupply},
+                                    {name: "주류&음료", amount: (desanitized.summary as any).alcohol ?? archiveAlcohol},
+                                    {name: "임대료", amount: desanitized.summary.rent || 0},
+                                    {name: "고정비", amount: desanitized.summary.fixedCosts || 0},
+                                    {name: "변동비", amount: desanitized.summary.variableCosts || 0},
+                                    {name: "마케팅", amount: desanitized.summary.marketingCosts || 0},
+                                    {name: "세금 예수금", amount: desanitized.summary.taxes || 0},
+                                    {name: "영업 이익", amount: desanitized.summary.operatingProfit || 0}
+                                ]}
+                            />
+                          </div>
+                      
+                          {/* 2. 일일 매출 입력 대시보드 */}
+                          <div className="w-full min-h-[40vh]">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">일일 매출 내역</h2>
+                            <PLDashboard 
+                              user={user}
+                              sales={archiveSales}
+                              currentMonth={desanitized.month.replace('.', '-')}
+                              currentSummary={desanitized.summary}
+                              currentExpenses={archiveExpenses}
+                              salaryBreakdown={{
+                                employeesTotal: totalSalary,
+                                partTimeTotal: totalPartTime,
+                                dispatchTotal: totalDispatch,
+                                insuranceTotal: totalInsurance,
+                                total: desanitized.summary.labor || 0
+                              }}
+                              transactions={archiveTransactions}
+                              isReadOnly
+                            />
+                          </div>
+                      
+                          {/* 3. 항목별 합산금액 대시보드 */}
+                          <div className="w-full">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">항목별 합산금액</h2>
+                            <ItemSummaryDashboard 
+                                transactions={archiveTransactions}
+                                groups={groups}
+                            />
+                          </div>
+
+                          {/* 4. 실적결과 탭 안의 지표관리 현황 대시보드 */}
+                          <div className="w-full">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">지표관리 현황</h2>
+                            <PerformanceResultsDashboard 
+                                totalSales={desanitized.summary.totalSales || 0}
+                                cogs={desanitized.summary.cogs || 0}
+                                mgmt={(desanitized.summary.labor || 0) + (desanitized.summary.rent || 0) + (desanitized.summary.fixedCosts || 0) + (desanitized.summary.variableCosts || 0)}
+                                marketing={desanitized.summary.marketingCosts || 0}
+                                taxes={desanitized.summary.taxes || 0}
+                                operatingProfit={desanitized.summary.operatingProfit || 0}
+                                gamjatang={(desanitized.summary as any).gamjatang ?? archiveGamjatang}
+                                supply={(desanitized.summary as any).supply ?? archiveSupply}
+                                alcohol={(desanitized.summary as any).alcohol ?? archiveAlcohol}
+                                labor={desanitized.summary.labor || 0}
+                                rent={desanitized.summary.rent || 0}
+                                fixedCosts={desanitized.summary.fixedCosts || 0}
+                                variableCosts={desanitized.summary.variableCosts || 0}
+                                archives={archives}
+                                currentMonth={desanitized.month}
+                            />
+                          </div>
+
+                          {/* 5. 직원급여 탭의 인건비 총합계 대시보드 */}
+                          <div className="w-full">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">인건비 총합계</h2>
+                            <div className="bg-emerald-50 rounded-2xl shadow-sm border border-emerald-100 p-5 flex flex-col justify-center">
+                              <div className="space-y-4 text-sm text-emerald-800 bg-emerald-100/50 p-6 rounded-xl mb-4">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium text-emerald-700">직원급여 :</span>
+                                  <span className="font-bold text-lg">{totalSalary.toLocaleString()}원</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium text-emerald-700">알바급여 :</span>
+                                  <span className="font-bold text-lg">{totalPartTime.toLocaleString()}원</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium text-emerald-700">파출급여 :</span>
+                                  <span className="font-bold text-lg">{totalDispatch.toLocaleString()}원</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium text-emerald-700">4대보험 :</span>
+                                  <span className="font-bold text-lg">{totalInsurance.toLocaleString()}원</span>
+                                </div>
+                              </div>
+                              <div className="flex justify-between items-center text-xl font-bold text-emerald-900 pt-4 border-t-2 border-emerald-200">
+                                <span>총액</span>
+                                <span>{((desanitized.summary.labor || 0)).toLocaleString()}원</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                  })()}
                 </>
               );
             })()}
           </div>
         ) : activeTab === 'cash' ? (
           <CashBalanceSheet data={cashBalanceData} setData={handleSetCashBalanceData} user={user} businessDateStr={businessDateStr} />
+        ) : activeTab === 'performance-results' ? (
+          <PerformanceResultsDashboard 
+              totalSales={currentSummary.totalSales}
+              cogs={currentSummary.cogs}
+              mgmt={currentSummary.labor + currentSummary.rent + currentSummary.fixedCosts + currentSummary.variableCosts}
+              marketing={currentSummary.marketingCosts}
+              taxes={currentSummary.taxes}
+              operatingProfit={currentSummary.operatingProfit}
+              gamjatang={currentSummary.gamjatang}
+              supply={currentSummary.supply}
+              alcohol={currentSummary.alcohol}
+              labor={currentSummary.labor}
+              rent={currentSummary.rent}
+              fixedCosts={currentSummary.fixedCosts}
+              variableCosts={currentSummary.variableCosts}
+              archives={archives}
+              currentMonth={currentMonth}
+          />
         ) : activeTab === 'pl' ? (
-          <PLDashboard 
-            user={user}
-            currentMonth={currentMonth}
-            currentSummary={currentSummary}
-            currentExpenses={currentExpenses}
-            salaryBreakdown={salaryBreakdown}
-            transactions={allTransactions}
-            onDeleteTransaction={handleDeleteTransaction}
-            onEditTransaction={handleEditTransaction}
-            isModalOpen={isModalOpen}
-            setIsModalOpen={(open) => {
-              setIsModalOpen(open);
-              if (!open) setEditingTransactionId(null);
-            }}
-            newExpense={newExpense}
-            setNewExpense={setNewExpense}
-            handleAddExpense={handleAddExpense}
-            vendorList={vendorList}
-            getBusinessDate={getBusinessDate}
-            handleDailyClose={handleDailyCloseClick}
-            canDailyClose={canDailyClose}
-            onVariableCostCalculated={setVariableCost}
-          />
-        ) : activeTab === 'kpi' ? (
-          <KPIDashboard 
-            currentSummary={currentSummary}
-            currentExpenses={currentExpenses}
-            archives={archives}
-            overrideVariableCosts={variableCost}
-          />
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-end w-full mb-1">
+              <button
+                onClick={handleDailyCloseClick}
+                className="px-4 py-2 text-sm font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 bg-rose-500 text-white hover:bg-rose-600 hover:shadow-md"
+              >
+                일일 마감
+              </button>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="w-full sm:w-1/2 min-h-[40vh]">
+                <CurrentExpensesDashboard 
+                    title="전체 요약"
+                    items={[
+                        {name: "일일 매출", amount: currentSummary.totalSales},
+                        {name: "인건비", amount: currentSummary.labor},
+                        {name: "감자탕&원재료", amount: currentSummary.gamjatang},
+                        {name: "식자재&공산품", amount: currentSummary.supply},
+                        {name: "주류&음료", amount: currentSummary.alcohol},
+                        {name: "임대료", amount: currentSummary.rent},
+                        {name: "고정비", amount: currentSummary.fixedCosts},
+                        {name: "변동비", amount: currentSummary.variableCosts},
+                        {name: "마케팅", amount: currentSummary.marketingCosts},
+                        {name: "세금 예수금", amount: currentSummary.taxes},
+                        {name: "영업 이익", amount: currentSummary.operatingProfit}
+                    ]}
+                />
+              </div>
+              <div className="w-full sm:w-1/2 min-h-[40vh]">
+                <PLDashboard 
+                  user={user}
+                  sales={sales}
+                  setSales={handleUpdateSales}
+                  currentMonth={currentMonth}
+                  currentSummary={currentSummary}
+                  currentExpenses={currentExpenses}
+                  salaryBreakdown={salaryBreakdown}
+                  transactions={allTransactions}
+                  onDeleteTransaction={handleDeleteTransaction}
+                  onEditTransaction={handleEditTransaction}
+                  isModalOpen={isModalOpen}
+                  setIsModalOpen={(open) => {
+                    setIsModalOpen(open);
+                    if (!open) setEditingTransactionId(null);
+                  }}
+                  newExpense={newExpense}
+                  setNewExpense={setNewExpense}
+                  handleAddExpense={handleAddExpense}
+                  vendorList={vendorList}
+                  getBusinessDate={getBusinessDate}
+                  handleDailyClose={handleDailyCloseClick}
+                  canDailyClose={canDailyClose}
+                  onVariableCostCalculated={setVariableCost}
+                />
+              </div>
+            </div>
+            
+            {/* Bottom Row: 매출원가 Category */}
+            <div>
+              <h3 className="font-bold text-lg mb-4 text-gray-900">매출원가</h3>
+              <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                <div className="w-full sm:w-1/3">
+                  <GenericLedgerDashboard 
+                    title="감자탕&원재료" 
+                    items={["뼈(제일축산)", "우거지", "모자반(제주)", "고추가루&참기름(참좋은식품)", "내장&소기름(프로축산)", "곱창(CNK)", "오돌뼈(미트촌)"]} 
+                    transactions={filteredTransactions
+                        .filter(t => t.category === '2-1. 원자재(육류)')
+                        .map(t => ({ id: t.id, date: t.date, itemName: t.name, amount: t.amount, status: t.status === 'paid' ? '입금완료' : '미입금', remarks: '' }))
+                    }
+                    onAddRecord={(newItem) => {
+                        const newTransaction: Transaction = {
+                          id: Date.now().toString(),
+                          date: newItem.date,
+                          category: '2-1. 원자재(육류)',
+                          name: newItem.itemName,
+                          amount: newItem.amount,
+                          status: newItem.status === '입금완료' ? 'paid' : 'unpaid',
+                          month: currentMonth,
+  uid: user.id
+};
+                        setDoc(doc(db, 'transactions', newTransaction.id), newTransaction).catch(e => handleFirestoreError(e, OperationType.CREATE, `transactions/${newTransaction.id}`));
+                    }}
+                    onUpdateRecord={(updatedItem) => {
+                        const updatedTransaction: Transaction = {
+                          id: updatedItem.id,
+                          date: updatedItem.date,
+                          category: '2-1. 원자재(육류)',
+                          name: updatedItem.itemName,
+                          amount: updatedItem.amount,
+                          status: updatedItem.status === '입금완료' ? 'paid' : 'unpaid',
+                          month: currentMonth,
+  uid: user.id
+};
+                        setDoc(doc(db, 'transactions', updatedTransaction.id), updatedTransaction, { merge: true }).catch(e => handleFirestoreError(e, OperationType.UPDATE, `transactions/${updatedTransaction.id}`));
+                    }}
+                    onDeleteRecord={(id) => {
+                        deleteDoc(doc(db, 'transactions', id)).catch(e => handleFirestoreError(e, OperationType.DELETE, `transactions/${id}`));
+                    }}
+                  />
+                </div>
+                <div className="w-full sm:w-1/3">
+                  <GenericLedgerDashboard 
+                    title="식자재&공산품" 
+                    items={[
+                      "우리과일야채(조병윤)",
+                      "모아상사(공산품)",
+                      "대형마트 및 부평시장",
+                      "편의점",
+                      "다이소",
+                      "천하유통(김치)",
+                      "쌀(병남형님)",
+                      "주유",
+                      "모노마트(돈까스)",
+                      "화미(다화에프앤비)",
+                      "웰빙나눔유통"
+                    ]}
+                    transactions={filteredTransactions
+                      .filter(t => t.category === '2-2. 식자재&공산품')
+                      .map(t => ({ id: t.id, date: t.date, itemName: t.name, amount: t.amount, status: t.status === 'paid' ? '입금완료' : '미입금', remarks: '' }))
+                    }
+                    onAddRecord={(newItem) => {
+                      const newTransaction: Transaction = {
+                        id: Date.now().toString(),
+                        date: newItem.date,
+                        category: '2-2. 식자재&공산품',
+                        name: newItem.itemName,
+                        amount: newItem.amount,
+                        status: newItem.status === '입금완료' ? 'paid' : 'unpaid',
+                        month: currentMonth,
+  uid: user.id
+};
+                      setDoc(doc(db, 'transactions', newTransaction.id), newTransaction).catch(e => handleFirestoreError(e, OperationType.CREATE, `transactions/${newTransaction.id}`));
+                    }}
+                    onUpdateRecord={(updatedItem) => {
+                      const updatedTransaction: Transaction = {
+                        id: updatedItem.id,
+                        date: updatedItem.date,
+                        category: '2-2. 식자재&공산품',
+                        name: updatedItem.itemName,
+                        amount: updatedItem.amount,
+                        status: updatedItem.status === '입금완료' ? 'paid' : 'unpaid',
+                        month: currentMonth,
+  uid: user.id
+};
+                      setDoc(doc(db, 'transactions', updatedTransaction.id), updatedTransaction, { merge: true }).catch(e => handleFirestoreError(e, OperationType.UPDATE, `transactions/${updatedTransaction.id}`));
+                    }}
+                    onDeleteRecord={(id) => {
+                      deleteDoc(doc(db, 'transactions', id)).catch(e => handleFirestoreError(e, OperationType.DELETE, `transactions/${id}`));
+                    }}
+                  />
+                </div>
+                <div className="w-full sm:w-1/3">
+                  <GenericLedgerDashboard 
+                    title="주류&음료" 
+                    items={["주류", "음료"]}
+                    transactions={filteredTransactions
+                      .filter(t => t.category === '주류&음료')
+                      .map(t => ({ id: t.id, date: t.date, itemName: t.name, amount: t.amount, status: t.status === 'paid' ? '입금완료' : '미입금', remarks: '' }))
+                    }
+                    onAddRecord={(newItem) => {
+                      const newTransaction: Transaction = {
+                        id: Date.now().toString(),
+                        date: newItem.date,
+                        category: '주류&음료',
+                        name: newItem.itemName,
+                        amount: newItem.amount,
+                        status: newItem.status === '입금완료' ? 'paid' : 'unpaid',
+                        month: currentMonth,
+  uid: user.id
+};
+                      setDoc(doc(db, 'transactions', newTransaction.id), newTransaction).catch(e => handleFirestoreError(e, OperationType.CREATE, `transactions/${newTransaction.id}`));
+                    }}
+                    onUpdateRecord={(updatedItem) => {
+                      const updatedTransaction: Transaction = {
+                        id: updatedItem.id,
+                        date: updatedItem.date,
+                        category: '주류&음료',
+                        name: updatedItem.itemName,
+                        amount: updatedItem.amount,
+                        status: updatedItem.status === '입금완료' ? 'paid' : 'unpaid',
+                        month: currentMonth,
+  uid: user.id
+};
+                      setDoc(doc(db, 'transactions', updatedTransaction.id), updatedTransaction, { merge: true }).catch(e => handleFirestoreError(e, OperationType.UPDATE, `transactions/${updatedTransaction.id}`));
+                    }}
+                    onDeleteRecord={(id) => {
+                      deleteDoc(doc(db, 'transactions', id)).catch(e => handleFirestoreError(e, OperationType.DELETE, `transactions/${id}`));
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 관리비 Category */}
+            <div>
+              <div className="flex items-center justify-between gap-4 mb-4 w-full">
+                <h3 className="font-bold text-lg text-gray-900">관리비</h3>
+                <FixedValueDashboard 
+                  title="임대료" 
+                  value={currentSummary.rent} 
+                  onUpdate={(newRent) => {
+                    const rentTransaction = transactions.find(t => t.name === '임대료' && t.month === currentMonth);
+                    if (rentTransaction) {
+                      setDoc(doc(db, 'transactions', rentTransaction.id), { ...rentTransaction, amount: newRent, category: '임대료' }, { merge: true }).catch(e => handleFirestoreError(e, OperationType.UPDATE, `transactions/${rentTransaction.id}`));
+                    } else {
+                      const newRentTransaction: Transaction = {
+                        id: Date.now().toString(),
+                        date: new Date().toISOString().slice(0, 10),
+                        category: '임대료',
+                        name: '임대료',
+                        amount: newRent,
+                        status: 'paid',
+                        month: currentMonth,
+  uid: user.id
+};
+                      setDoc(doc(db, 'transactions', newRentTransaction.id), newRentTransaction).catch(e => handleFirestoreError(e, OperationType.CREATE, `transactions/${newRentTransaction.id}`));
+                    }
+                  }}
+                  onDelete={() => {
+                    const rentTransaction = transactions.find(t => t.name === '임대료' && t.month === currentMonth);
+                    if (rentTransaction) {
+                      deleteDoc(doc(db, 'transactions', rentTransaction.id)).catch(e => handleFirestoreError(e, OperationType.DELETE, `transactions/${rentTransaction.id}`));
+                    }
+                  }}
+                  className="!p-4" 
+                />
+
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="w-full sm:w-1/3">
+                  <GenericLedgerDashboard 
+                    title="고정비" 
+                    buttonColor="purple"
+                    items={[
+                        "화재보험",
+                        "캡스",
+                        "노무사",
+                        "세무서",
+                        "카솔(적립프로그램)",
+                        "인터넷/전화",
+                        "포스렌탈"
+                    ]} 
+                    transactions={filteredTransactions
+                      .filter(t => t.category === '고정비')
+                      .map(t => ({ id: t.id, date: t.date, itemName: t.name, amount: t.amount, status: t.status === 'paid' ? '입금완료' : '미입금', remarks: '' }))
+                    }
+                    onAddRecord={(newItem) => {
+                      const newTransaction: Transaction = {
+                        id: Date.now().toString(),
+                        date: newItem.date,
+                        category: '고정비',
+                        name: newItem.itemName,
+                        amount: newItem.amount,
+                        status: newItem.status === '입금완료' ? 'paid' : 'unpaid',
+                        month: currentMonth,
+  uid: user.id
+};
+                      setDoc(doc(db, 'transactions', newTransaction.id), newTransaction).catch(e => handleFirestoreError(e, OperationType.CREATE, `transactions/${newTransaction.id}`));
+                    }}
+                    onUpdateRecord={(updatedItem) => {
+                      const updatedTransaction: Transaction = {
+                        id: updatedItem.id,
+                        date: updatedItem.date,
+                        category: '고정비',
+                        name: updatedItem.itemName,
+                        amount: updatedItem.amount,
+                        status: updatedItem.status === '입금완료' ? 'paid' : 'unpaid',
+                        month: currentMonth,
+  uid: user.id
+};
+                      setDoc(doc(db, 'transactions', updatedTransaction.id), updatedTransaction, { merge: true }).catch(e => handleFirestoreError(e, OperationType.UPDATE, `transactions/${updatedTransaction.id}`));
+                    }}
+                    onDeleteRecord={(id) => {
+                      deleteDoc(doc(db, 'transactions', id)).catch(e => handleFirestoreError(e, OperationType.DELETE, `transactions/${id}`));
+                    }}
+                  />
+                </div>
+                <div className="w-full sm:w-1/3">
+                  <GenericLedgerDashboard 
+                    title="변동비" 
+                    buttonColor="purple"
+                    items={[
+                        "가스비",
+                        "전기세",
+                        "상하수도요금",
+                        "정수기",
+                        "썬주차장",
+                        "음식물처리",
+                        "식비 & 복지",
+                        "인터넷 비품 결제",
+                        "서비스 테이블 결제",
+                        "포장용기 결제",
+                        "기타 카드 결제"
+                    ]}
+                    transactions={filteredTransactions
+                      .filter(t => t.category === '변동비')
+                      .map(t => ({ id: t.id, date: t.date, itemName: t.name, amount: t.amount, status: t.status === 'paid' ? '입금완료' : '미입금', remarks: '' }))
+                    }
+                    onAddRecord={(newItem) => {
+                      const newTransaction: Transaction = {
+                        id: Date.now().toString(),
+                        date: newItem.date,
+                        category: '변동비',
+                        name: newItem.itemName,
+                        amount: newItem.amount,
+                        status: newItem.status === '입금완료' ? 'paid' : 'unpaid',
+                        month: currentMonth,
+  uid: user.id
+};
+                      setDoc(doc(db, 'transactions', newTransaction.id), newTransaction).catch(e => handleFirestoreError(e, OperationType.CREATE, `transactions/${newTransaction.id}`));
+                    }}
+                    onUpdateRecord={(updatedItem) => {
+                      const updatedTransaction: Transaction = {
+                        id: updatedItem.id,
+                        date: updatedItem.date,
+                        category: '변동비',
+                        name: updatedItem.itemName,
+                        amount: updatedItem.amount,
+                        status: updatedItem.status === '입금완료' ? 'paid' : 'unpaid',
+                        month: currentMonth,
+  uid: user.id
+};
+                      setDoc(doc(db, 'transactions', updatedTransaction.id), updatedTransaction, { merge: true }).catch(e => handleFirestoreError(e, OperationType.UPDATE, `transactions/${updatedTransaction.id}`));
+                    }}
+                    onDeleteRecord={(id) => {
+                      deleteDoc(doc(db, 'transactions', id)).catch(e => handleFirestoreError(e, OperationType.DELETE, `transactions/${id}`));
+                    }}
+                    extraFee={((Object.values(sales) as any[]).reduce((sum: number, s: any) => sum + s.card, 0) || 0) * 0.019}
+                    extraContent={
+                      <div className="bg-gray-50 border border-gray-100 p-2 rounded-xl flex justify-between items-center shadow-sm">
+                        <span className="font-bold text-[10px] text-gray-700">카드수수료(1.9%)</span>
+                        <span className="font-bold text-xs text-indigo-600">
+                          {formatCurrency(((Object.values(sales) as any[]).reduce((sum: number, s: any) => sum + s.card, 0) || 0) * 0.019)}
+                        </span>
+                      </div>
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 마케팅 Category */}
+            <div className="mt-8">
+              <h3 className="font-bold text-lg mb-4 text-gray-900">마케팅</h3>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="w-full sm:w-1/3">
+                  <GenericLedgerDashboard 
+                    title="마케팅" 
+                    buttonColor="purple"
+                    items={[
+                        "네이버광고",
+                        "블로그",
+                        "당근광고",
+                        "인스타광고",
+                        "틱톡광고",
+                        "인스타 인플루언서",
+                        "기타 마케팅"
+                    ]} 
+                    transactions={filteredTransactions
+                      .filter(t => t.category === '마케팅')
+                      .map(t => ({ id: t.id, date: t.date, itemName: t.name, amount: t.amount, status: t.status === 'paid' ? '입금완료' : '미입금', remarks: '' }))
+                    }
+                    onAddRecord={(newItem) => {
+                      const newTransaction: Transaction = {
+                        id: Date.now().toString(),
+                        date: newItem.date,
+                        category: '마케팅',
+                        name: newItem.itemName,
+                        amount: newItem.amount,
+                        status: newItem.status === '입금완료' ? 'paid' : 'unpaid',
+                        month: currentMonth,
+  uid: user.id
+};
+                      setDoc(doc(db, 'transactions', newTransaction.id), newTransaction).catch(e => handleFirestoreError(e, OperationType.CREATE, `transactions/${newTransaction.id}`));
+                    }}
+                    onUpdateRecord={(updatedItem) => {
+                      const updatedTransaction: Transaction = {
+                        id: updatedItem.id,
+                        date: updatedItem.date,
+                        category: '마케팅',
+                        name: updatedItem.itemName,
+                        amount: updatedItem.amount,
+                        status: updatedItem.status === '입금완료' ? 'paid' : 'unpaid',
+                        month: currentMonth,
+  uid: user.id
+};
+                      setDoc(doc(db, 'transactions', updatedTransaction.id), updatedTransaction, { merge: true }).catch(e => handleFirestoreError(e, OperationType.UPDATE, `transactions/${updatedTransaction.id}`));
+                    }}
+                    onDeleteRecord={(id) => {
+                      deleteDoc(doc(db, 'transactions', id)).catch(e => handleFirestoreError(e, OperationType.DELETE, `transactions/${id}`));
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* New Row: 세금 Category */}
+            <div>
+              <h3 className="font-bold text-lg mb-4 text-gray-900">세금</h3>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="w-full sm:w-1/3">
+                  <SingleValueDashboard 
+                      title="세금 예수금" 
+                      value={currentExpenses.find(e => e.name === '세금 예수금')?.amount || 0}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <ItemSummaryDashboard 
+                transactions={filteredTransactions}
+                groups={groups}
+            />
+
+            {/* 세부 비용 요약 */}
+          </div>
         ) : activeTab === 'salary' ? (
           <SalaryDashboard 
             user={user}
@@ -2120,16 +2808,6 @@ export default function App() {
           />
         )}
       </main>
-
-      <VendorManagementModal
-        isOpen={isVendorModalOpen}
-        onClose={() => setIsVendorModalOpen(false)}
-        vendorList={vendorList}
-        onUpdateVendor={handleUpdateVendor}
-        onDeleteVendor={handleDeleteVendor}
-        onAddVendor={handleAddVendor}
-        onReorderVendor={handleReorderVendor}
-      />
 
       {/* Daily Close Confirmation Modal */}
       <AnimatePresence>
@@ -2262,6 +2940,7 @@ export default function App() {
                 </p>
               </div>
 
+              {resetError && <div className="mb-4 text-red-600 bg-red-100 p-4 rounded-xl text-sm font-bold text-center">{resetError}</div>}
               <div className="grid grid-cols-2 gap-4">
                 <button 
                   onClick={() => setIsResetConfirmOpen(false)}
@@ -2379,14 +3058,14 @@ export default function App() {
           <span className="text-[10px] font-bold">손익계산서</span>
         </button>
         <button 
-          onClick={() => setActiveTab('kpi')}
+          onClick={() => setActiveTab('performance-results')}
           className={cn(
             "flex flex-col items-center gap-1 transition-all",
-            activeTab === 'kpi' ? "text-emerald-600" : "text-gray-400"
+            activeTab === 'performance-results' ? "text-emerald-600" : "text-gray-400"
           )}
         >
-          <TrendingUp className={cn("w-6 h-6", activeTab === 'kpi' ? "fill-emerald-50" : "")} />
-          <span className="text-[10px] font-bold">운영실적</span>
+          <TrendingUp className={cn("w-6 h-6", activeTab === 'performance-results' ? "fill-emerald-50" : "")} />
+          <span className="text-[10px] font-bold">실적결과</span>
         </button>
         <button 
           onClick={() => setActiveTab('salary')}
