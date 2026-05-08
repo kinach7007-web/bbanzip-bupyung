@@ -1545,6 +1545,7 @@ export default function App() {
       setSales({});
 
       alert(`${currentMonth.replace('-', '년 ')}월 마감이 완료되었습니다. ${nextMonthStr.replace('-', '년 ')}월 업무를 시작합니다.`);
+      window.location.reload();
     } catch (e) {
       console.error("Close month error details:", e);
       alert(`마감 처리 중 오류가 발생했습니다: ${e instanceof Error ? e.message : String(e)}`);
