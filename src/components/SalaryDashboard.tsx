@@ -309,21 +309,21 @@ export function SalaryDashboard({
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 md:p-6 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50/50">
+      <div className="bg-indigo-50/20 rounded-2xl shadow-sm border border-indigo-200 overflow-hidden">
+        <div className="p-4 md:p-6 border-b border-indigo-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-indigo-50/50">
           <div className="w-full">
-            <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Users className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
+            <h2 className="text-base md:text-lg font-bold text-indigo-950 flex items-center gap-2">
+              <Users className="w-4 h-4 md:w-5 md:h-5 text-indigo-600" />
               직원급여 현황표
             </h2>
-            <p className="text-[8px] md:text-xs text-gray-400 mt-1 break-keep leading-tight">
+            <p className="text-[8px] md:text-xs text-indigo-500 mt-1 break-keep leading-tight">
               ▶ 매일 출근 기준: 오늘 날짜({currentDay}일) 기준으로 근무일수와 급여가 자동 계산됩니다.
             </p>
           </div>
           {!isReadOnly && (
             <button
               onClick={addEmployee}
-              className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 md:py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-xs md:text-sm font-medium shadow-sm whitespace-nowrap"
+              className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 md:py-2.5 bg-indigo-300 text-indigo-950 rounded-xl hover:bg-indigo-400 transition-colors text-xs md:text-sm font-bold shadow-sm whitespace-nowrap"
             >
               <Plus className="w-3 h-3 md:w-4 md:h-4" />
               직원 추가
@@ -333,19 +333,19 @@ export function SalaryDashboard({
 
         <div className="overflow-x-auto">
           <table className="w-full text-[10px] md:text-sm text-left whitespace-nowrap">
-            <thead className="text-[9px] md:text-xs text-gray-700 bg-gray-50 border-b border-gray-200">
+            <thead className="text-[9px] md:text-xs text-indigo-900 bg-indigo-100/50 border-b border-indigo-200">
               <tr>
-                <th rowSpan={2} className="px-1 md:px-3 py-2 md:py-3 font-semibold text-center border-r border-gray-200 sticky left-0 bg-gray-50 z-10">성명</th>
-                <th rowSpan={2} className="px-1 md:px-3 py-2 md:py-3 font-semibold text-center border-r border-gray-200">직급</th>
-                <th colSpan={3} className="px-1 md:px-3 py-1 md:py-2 font-semibold text-center border-r border-gray-200 border-b border-gray-200">지급내용</th>
-                <th rowSpan={2} className="px-1 md:px-3 py-2 md:py-3 font-semibold text-center border-r border-gray-200">급여</th>
-                <th rowSpan={2} className="px-1 md:px-3 py-2 md:py-3 font-semibold text-center border-l border-gray-200">비고</th>
+                <th rowSpan={2} className="px-1 md:px-3 py-2 md:py-3 font-semibold text-center border-r border-indigo-200 sticky left-0 bg-indigo-50 z-10">성명</th>
+                <th rowSpan={2} className="px-1 md:px-3 py-2 md:py-3 font-semibold text-center border-r border-indigo-200">직급</th>
+                <th colSpan={3} className="px-1 md:px-3 py-1 md:py-2 font-semibold text-center border-r border-indigo-200 border-b border-indigo-200">지급내용</th>
+                <th rowSpan={2} className="px-1 md:px-3 py-2 md:py-3 font-semibold text-center border-r border-indigo-200">급여</th>
+                <th rowSpan={2} className="px-1 md:px-3 py-2 md:py-3 font-semibold text-center border-l border-indigo-200">비고</th>
                 {!isReadOnly && <th rowSpan={2} className="px-1 md:px-3 py-2 md:py-3 font-semibold text-center">관리</th>}
               </tr>
               <tr>
-                <th className="px-1 md:px-3 py-1 font-semibold text-center border-r border-gray-200">월급</th>
-                <th className="px-1 md:px-3 py-1 font-semibold text-center border-r border-gray-200">일당</th>
-                <th className="px-1 md:px-3 py-1 font-semibold text-center border-r border-gray-200">근무일수</th>
+                <th className="px-1 md:px-3 py-1 font-semibold text-center border-r border-indigo-200">월급</th>
+                <th className="px-1 md:px-3 py-1 font-semibold text-center border-r border-indigo-200">일당</th>
+                <th className="px-1 md:px-3 py-1 font-semibold text-center border-r border-indigo-200">근무일수</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -490,21 +490,21 @@ export function SalaryDashboard({
         {/* 알바급여 Column */}
         <div className="flex flex-col gap-4">
           {/* Part-Time Daily Tracking */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-4 md:p-6 border-b border-gray-200 bg-gray-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="bg-indigo-50/20 rounded-2xl shadow-sm border border-indigo-200 overflow-hidden">
+          <div className="p-4 md:p-6 border-b border-indigo-200 bg-indigo-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="w-full">
-              <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Users className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
+              <h2 className="text-base md:text-lg font-bold text-indigo-950 flex items-center gap-2">
+                <Users className="w-4 h-4 md:w-5 md:h-5 text-indigo-600" />
                 알바급여
               </h2>
-              <p className="text-[10px] md:text-sm text-gray-500 mt-1 break-keep leading-tight">
+              <p className="text-[10px] md:text-sm text-indigo-500 mt-1 break-keep leading-tight">
                 ▶ 날짜와 알바생을 선택하고 근무시간을 입력하세요.
               </p>
             </div>
             {!isReadOnly && (
               <button
                 onClick={() => setIsWorkerModalOpen(true)}
-                className="w-full md:w-auto px-4 py-2 bg-blue-600 border border-blue-700 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-xs md:text-sm shadow-sm text-center whitespace-nowrap"
+                className="w-full md:w-auto px-4 py-2 bg-indigo-300 text-indigo-950 font-bold rounded-lg hover:bg-indigo-400 transition-colors text-xs md:text-sm shadow-sm text-center whitespace-nowrap"
               >
                 알바정보입력
               </button>
@@ -691,21 +691,21 @@ export function SalaryDashboard({
       {/* 파출급여 Column */}
       <div className="flex flex-col gap-4">
         {/* Dispatch Daily Tracking */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-4 md:p-6 border-b border-gray-200 bg-gray-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="bg-indigo-50/20 rounded-2xl shadow-sm border border-indigo-200 overflow-hidden">
+          <div className="p-4 md:p-6 border-b border-indigo-200 bg-indigo-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="w-full">
-              <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Users className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
+              <h2 className="text-base md:text-lg font-bold text-indigo-950 flex items-center gap-2">
+                <Users className="w-4 h-4 md:w-5 md:h-5 text-indigo-600" />
                 파출급여
               </h2>
-              <p className="text-[10px] md:text-sm text-gray-500 mt-1 break-keep leading-tight">
+              <p className="text-[10px] md:text-sm text-indigo-500 mt-1 break-keep leading-tight">
                 ▶ 날짜와 파출을 선택하고 금액을 입력하세요.
               </p>
             </div>
             {!isReadOnly && (
               <button
                 onClick={() => setIsDispatchWorkerModalOpen(true)}
-                className="w-full md:w-auto px-4 py-2 bg-blue-600 border border-blue-700 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-xs md:text-sm shadow-sm text-center whitespace-nowrap"
+                className="w-full md:w-auto px-4 py-2 bg-indigo-300 text-indigo-950 font-bold rounded-lg hover:bg-indigo-400 transition-colors text-xs md:text-sm shadow-sm text-center whitespace-nowrap"
               >
                 파출정보입력
               </button>
@@ -891,18 +891,18 @@ export function SalaryDashboard({
     {/* Additional Expenses Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 사대보험 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-          <div className="p-4 md:p-6 border-b border-gray-200 bg-gray-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="bg-indigo-50/20 rounded-2xl shadow-sm border border-indigo-200 overflow-hidden flex flex-col">
+          <div className="p-4 md:p-6 border-b border-indigo-200 bg-indigo-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="w-full">
-              <h2 className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Shield className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+              <h2 className="text-base md:text-lg font-bold text-indigo-950 flex items-center gap-2">
+                <Shield className="w-4 h-4 md:w-5 md:h-5 text-indigo-600" />
                 4대보험
               </h2>
-              <p className="text-[10px] md:text-sm text-gray-500 mt-1 break-keep leading-tight">
+              <p className="text-[10px] md:text-sm text-indigo-500 mt-1 break-keep leading-tight">
                 ▶ 보험 종류를 선택하고 금액을 입력하세요.
               </p>
             </div>
-            <span className="w-full md:w-auto text-center text-xs text-blue-600 font-medium bg-blue-100 px-2.5 py-1.5 md:py-1 rounded-lg md:rounded-full border border-blue-200 whitespace-nowrap">월 1회</span>
+            <span className="w-full md:w-auto text-center text-xs text-indigo-800 font-bold bg-indigo-100/50 px-2.5 py-1.5 md:py-1 rounded-lg md:rounded-full border border-indigo-200 whitespace-nowrap">월 1회</span>
           </div>
           <div className="p-4 md:p-6 flex-1 flex flex-col">
             {/* Input Form */}
@@ -1006,34 +1006,34 @@ export function SalaryDashboard({
         </div>
 
         {/* 인건비 총합계 */}
-        <div className="bg-emerald-50 rounded-2xl shadow-sm border border-emerald-100 p-5 flex flex-col justify-center">
-          <h3 className="text-base font-bold text-emerald-900 mb-4">인건비 총합계</h3>
+        <div className="bg-indigo-50 rounded-2xl shadow-sm border border-indigo-200 p-5 flex flex-col justify-center">
+          <h3 className="text-base font-bold text-indigo-950 mb-4">인건비 총합계</h3>
           
-          <div className="space-y-2 text-xs text-emerald-800 bg-emerald-100/50 p-4 rounded-lg mb-4">
+          <div className="space-y-2 text-xs text-indigo-900 bg-indigo-100/50 p-4 rounded-lg mb-4">
             <div className="flex justify-between">
-              <span>직원급여 :</span>
-              <span className="font-medium">{formatCurrency(summary.totalSalary)}원</span>
+              <span className="text-indigo-600">직원급여 :</span>
+              <span className="font-bold">{formatCurrency(summary.totalSalary)}원</span>
             </div>
             <div className="flex justify-between">
-              <span>알바급여 :</span>
-              <span className="font-medium">{formatCurrency(totalPartTime)}원</span>
+              <span className="text-indigo-600">알바급여 :</span>
+              <span className="font-bold">{formatCurrency(totalPartTime)}원</span>
             </div>
             <div className="flex justify-between">
-              <span>파출급여 :</span>
-              <span className="font-medium">{formatCurrency(totalDispatch)}원</span>
+              <span className="text-indigo-600">파출급여 :</span>
+              <span className="font-bold">{formatCurrency(totalDispatch)}원</span>
             </div>
             <div className="flex justify-between">
-              <span>4대보험 :</span>
-              <span className="font-medium">{formatCurrency(summary.totalInsurance)}원</span>
+              <span className="text-indigo-600">4대보험 :</span>
+              <span className="font-bold">{formatCurrency(summary.totalInsurance)}원</span>
             </div>
-            <div className="flex justify-between font-bold border-t border-emerald-200 pt-2 mt-2 text-emerald-900">
+            <div className="flex justify-between font-extrabold border-t border-indigo-200 pt-2 mt-2 text-indigo-950">
               <span>총 합계 :</span>
               <span>{formatCurrency(summary.grandTotal)}원</span>
             </div>
           </div>
 
-          <div className="text-3xl font-black text-emerald-600 tracking-tight text-right mt-auto">
-            {formatCurrency(summary.grandTotal)} <span className="text-xl font-bold text-emerald-500">원</span>
+          <div className="text-3xl font-black text-indigo-700 tracking-tight text-right mt-auto">
+            {formatCurrency(summary.grandTotal)} <span className="text-xl font-bold text-indigo-500">원</span>
           </div>
         </div>
       </div>

@@ -2391,7 +2391,7 @@ export default function App() {
             <div className="flex justify-end w-full mb-1">
               <button
                 onClick={handleDailyCloseClick}
-                className="px-4 py-2 text-sm font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 bg-rose-500 text-white hover:bg-rose-600 hover:shadow-md"
+                className="px-4 py-2 text-sm font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 bg-rose-300 text-rose-950 hover:bg-rose-400 hover:shadow-md"
               >
                 일일 마감
               </button>
@@ -2446,7 +2446,7 @@ export default function App() {
             
             {/* Bottom Row: 매출원가 Category */}
             <div>
-              <h3 className="font-bold text-lg mb-4 text-gray-900">매출원가</h3>
+              <h3 className="font-bold text-lg mb-4 text-orange-900">매출원가</h3>
               <div className="flex flex-col sm:flex-row gap-4 mb-4">
                 <div className="w-full sm:w-1/3">
                   <GenericLedgerDashboard 
@@ -2583,7 +2583,7 @@ export default function App() {
             {/* 관리비 Category */}
             <div>
               <div className="flex items-center justify-between gap-4 mb-4 w-full">
-                <h3 className="font-bold text-lg text-gray-900">관리비</h3>
+                <h3 className="font-bold text-lg text-violet-900">관리비</h3>
                 <FixedValueDashboard 
                   title="임대료" 
                   value={currentSummary.rent} 
@@ -2785,7 +2785,7 @@ export default function App() {
 
             {/* New Row: 세금 Category */}
             <div>
-              <h3 className="font-bold text-lg mb-4 text-gray-900">세금</h3>
+              <h3 className="font-bold text-lg mb-4 text-emerald-900">세금</h3>
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="w-full sm:w-1/3">
                   <SingleValueDashboard 
@@ -2838,27 +2838,27 @@ export default function App() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+              className="bg-rose-50 rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-rose-200"
             >
               <div className="p-6">
-                <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mb-4 mx-auto">
-                  <Lock className="w-6 h-6 text-rose-600" />
+                <div className="w-12 h-12 rounded-full bg-rose-200 flex items-center justify-center mb-4 mx-auto">
+                  <Lock className="w-6 h-6 text-rose-700" />
                 </div>
-                <h3 className="text-xl font-bold text-center text-gray-900 mb-2">일일 마감</h3>
-                <p className="text-center text-gray-600 mb-6">
-                  현재 영업일(<strong className="text-gray-900">{businessDateStr}</strong>)을 마감하고<br/>
+                <h3 className="text-xl font-bold text-center text-rose-950 mb-2">일일 마감</h3>
+                <p className="text-center text-rose-800 mb-6">
+                  현재 영업일(<strong className="text-rose-950">{businessDateStr}</strong>)을 마감하고<br/>
                   다음 날(<strong className="text-rose-600">{nextBusinessDateStr}</strong>)로 넘어가시겠습니까?
                 </p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setIsDailyCloseConfirmOpen(false)}
-                    className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
+                    className="flex-1 px-4 py-2.5 bg-rose-100 text-rose-800 font-medium rounded-xl hover:bg-rose-200 transition-colors"
                   >
                     취소
                   </button>
                   <button
                     onClick={confirmDailyClose}
-                    className="flex-1 px-4 py-2.5 bg-rose-600 text-white font-medium rounded-xl hover:bg-rose-700 transition-colors shadow-lg shadow-rose-200"
+                    className="flex-1 px-4 py-2.5 bg-rose-300 text-rose-950 font-bold rounded-xl hover:bg-rose-400 transition-colors shadow shadow-rose-200"
                   >
                     마감하기
                   </button>

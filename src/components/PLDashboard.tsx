@@ -110,40 +110,40 @@ export function PLDashboard({
 
   return (
     <div className="h-full animate-in fade-in duration-500">
-      <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm overflow-hidden w-full h-full">
+      <div className="bg-rose-50/50 p-3 rounded-xl border border-rose-200 shadow-sm overflow-hidden w-full h-full">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-sm text-gray-900">일일 매출 입력</h3>
+          <h3 className="font-bold text-sm text-rose-900">일일 매출 입력</h3>
           {!isReadOnly && (
             <button 
               onClick={handleOpenModal}
-              className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold shadow-sm hover:bg-blue-700 transition"
+              className="px-3 py-1 bg-rose-300 text-rose-900 rounded-lg text-xs font-bold shadow-sm hover:bg-rose-400 transition"
             >
               매출 입력
             </button>
           )}
         </div>
         
-        <div className="overflow-auto max-h-[40vh] border rounded-lg border-gray-100 shadow-inner bg-gray-50/30">
+        <div className="overflow-auto max-h-[40vh] border rounded-lg border-rose-200 shadow-inner bg-rose-100/30">
           <table className="w-full text-[8px] border-separate border-spacing-0">
             <thead className="sticky top-0 z-30">
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="sticky left-0 z-40 bg-gray-50 border-r border-b border-gray-100 p-1 font-semibold text-gray-700 w-12">날짜</th>
-                <th className="border-r border-b border-gray-100 p-1 font-semibold text-gray-700 text-right">배달</th>
-                <th className="border-r border-b border-gray-100 p-1 font-semibold text-gray-700 text-right">현금</th>
-                <th className="border-r border-b border-gray-100 p-1 font-semibold text-gray-700 text-right">카드</th>
-                <th className="border-r border-b border-gray-100 p-1 font-semibold text-gray-700 text-right">합계</th>
+              <tr className="bg-rose-100 border-b border-rose-200">
+                <th className="sticky left-0 z-40 bg-rose-100 border-r border-b border-rose-200 p-1 font-semibold text-rose-800 w-12">날짜</th>
+                <th className="border-r border-b border-rose-200 p-1 font-semibold text-rose-800 text-right">배달</th>
+                <th className="border-r border-b border-rose-200 p-1 font-semibold text-rose-800 text-right">현금</th>
+                <th className="border-r border-b border-rose-200 p-1 font-semibold text-rose-800 text-right">카드</th>
+                <th className="border-r border-b border-rose-200 p-1 font-semibold text-rose-800 text-right">합계</th>
               </tr>
             </thead>
             <tbody>
               {days.map(day => (
-                <tr key={day} className="bg-white border-b border-gray-50 transition-colors hover:bg-gray-50">
-                  <td className="sticky left-0 z-10 bg-inherit border-r p-1 font-semibold text-gray-800 border-gray-50">
+                <tr key={day} className="bg-white border-b border-rose-100 transition-colors hover:bg-rose-50">
+                  <td className="sticky left-0 z-10 bg-inherit border-r p-1 font-semibold text-rose-900 border-rose-100">
                     {day}({getDayOfWeek(day)})
                   </td>
                   {(['delivery', 'cash', 'card'] as const).map(field => (
                     <td 
                       key={field}
-                      className="border-r border-b border-gray-50 p-1 text-right text-gray-600 cursor-pointer hover:bg-blue-50/50 transition-colors"
+                      className="border-r border-b border-rose-100 p-1 text-right text-rose-700 cursor-pointer hover:bg-rose-100/50 transition-colors"
                       onClick={() => {
                         if (isReadOnly) return;
                         setEditingCell({ day, field });
@@ -153,19 +153,19 @@ export function PLDashboard({
                       {(sales[day]?.[field] || 0) > 0 ? (sales[day]?.[field] || 0).toLocaleString() : '-'}
                     </td>
                   ))}
-                  <td className="p-1 text-right font-bold text-gray-800">
+                  <td className="p-1 text-right font-bold text-rose-900">
                     {(dailyTotals[day - 1] || 0) > 0 ? (dailyTotals[day - 1] || 0).toLocaleString() : '-'}
                   </td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-gray-100 font-bold border-t border-gray-100">
+            <tfoot className="bg-rose-200 font-bold border-t border-rose-200">
               <tr>
-                <td className="sticky left-0 z-10 bg-inherit border-r p-1 text-gray-800 border-gray-100">합계</td>
-                <td className="p-1 text-right text-gray-800 border-r border-gray-100">{monthlyTotals.delivery.toLocaleString()}</td>
-                <td className="p-1 text-right text-gray-800 border-r border-gray-100">{monthlyTotals.cash.toLocaleString()}</td>
-                <td className="p-1 text-right text-gray-800 border-r border-gray-100">{monthlyTotals.card.toLocaleString()}</td>
-                <td className="p-1 text-right text-gray-900">{monthlyTotals.total.toLocaleString()}</td>
+                <td className="sticky left-0 z-10 bg-inherit border-r p-1 text-rose-900 border-rose-200">합계</td>
+                <td className="p-1 text-right text-rose-900 border-r border-rose-200">{monthlyTotals.delivery.toLocaleString()}</td>
+                <td className="p-1 text-right text-rose-900 border-r border-rose-200">{monthlyTotals.cash.toLocaleString()}</td>
+                <td className="p-1 text-right text-rose-900 border-r border-rose-200">{monthlyTotals.card.toLocaleString()}</td>
+                <td className="p-1 text-right text-rose-950">{monthlyTotals.total.toLocaleString()}</td>
               </tr>
             </tfoot>
           </table>
@@ -175,22 +175,22 @@ export function PLDashboard({
       {/* Input Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl">
+          <div className="bg-rose-50 p-8 rounded-3xl w-full max-w-sm shadow-2xl border border-rose-200">
             {/* Input Modal content remains same as the existing one in the file */}
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-900">매출 기록</h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+              <h3 className="text-xl font-bold text-rose-950">매출 기록</h3>
+              <button onClick={() => setShowModal(false)} className="text-rose-400 hover:text-rose-600 text-lg">✕</button>
             </div>
             
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">매출 유형</label>
+                <label className="block text-xs font-semibold text-rose-500 uppercase tracking-wider mb-2">매출 유형</label>
                 <div className="grid grid-cols-3 gap-2">
                   {['현금', '카드', '배달정산'].map(type => (
                     <button 
                       key={type}
                       onClick={() => setNewSale({...newSale, type, item: type})}
-                      className={`px-3 py-2 text-sm font-medium rounded-xl transition-all ${newSale.type === type ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                      className={`px-3 py-2 text-sm font-medium rounded-xl transition-all ${newSale.type === type ? 'bg-rose-300 text-rose-950 shadow-md' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'}`}
                     >
                       {type}
                     </button>
@@ -199,15 +199,15 @@ export function PLDashboard({
               </div>
               
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">매출 항목</label>
-                <input className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 transition outline-none" value={newSale.item} onChange={e => setNewSale({...newSale, item: e.target.value})} />
+                <label className="block text-xs font-semibold text-rose-500 uppercase tracking-wider mb-2">매출 항목</label>
+                <input className="w-full px-4 py-2 bg-rose-100/50 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-400 transition outline-none text-rose-950" value={newSale.item} onChange={e => setNewSale({...newSale, item: e.target.value})} />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">금액 (KRW)</label>
+                <label className="block text-xs font-semibold text-rose-500 uppercase tracking-wider mb-2">금액 (KRW)</label>
                 <input 
                   type="text" 
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 transition outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                  className="w-full px-4 py-2 bg-rose-100/50 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-400 transition outline-none text-rose-950 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
                   placeholder="0"
                   value={newSale.amount ? Number(newSale.amount.replace(/,/g, '')).toLocaleString() : ''} 
                   onChange={e => setNewSale({...newSale, amount: e.target.value.replace(/,/g, '')})} 
@@ -215,13 +215,13 @@ export function PLDashboard({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">날짜</label>
-                <input type="date" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 transition outline-none" value={newSale.date} onChange={e => setNewSale({...newSale, date: e.target.value})} />
+                <label className="block text-xs font-semibold text-rose-500 uppercase tracking-wider mb-2">날짜</label>
+                <input type="date" className="w-full px-4 py-2 bg-rose-100/50 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-400 transition outline-none text-rose-950" value={newSale.date} onChange={e => setNewSale({...newSale, date: e.target.value})} />
               </div>
               
               <button 
                 onClick={addSale}
-                className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition"
+                className="w-full py-3 bg-rose-300 text-rose-950 rounded-xl font-bold hover:bg-rose-400 transition shadow-sm"
               >
                 기록 완료
               </button>
@@ -233,25 +233,25 @@ export function PLDashboard({
       {/* Edit Modal */}
       {editingCell && (
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">값 수정 ({editingCell.day}일 - {editingCell.field === 'delivery' ? '배달정산' : editingCell.field})</h3>
+          <div className="bg-rose-50 p-8 rounded-3xl w-full max-w-sm shadow-2xl border border-rose-200">
+            <h3 className="text-xl font-bold text-rose-950 mb-6">값 수정 ({editingCell.day}일 - {editingCell.field === 'delivery' ? '배달정산' : editingCell.field})</h3>
             <div className="space-y-4">
-              <p className="text-sm text-gray-500">기존 값: {(sales[editingCell.day]?.[editingCell.field] || 0).toLocaleString()}</p>
+              <p className="text-sm text-rose-700">기존 값: {(sales[editingCell.day]?.[editingCell.field] || 0).toLocaleString()}</p>
               <input 
                 type="number"
-                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl"
+                className="w-full px-4 py-2 bg-rose-100/50 border border-rose-200 rounded-xl outline-none focus:ring-2 focus:ring-rose-400 text-rose-950"
                 value={editValue}
                 onChange={e => setEditValue(e.target.value)}
               />
               <div className="flex gap-2 pt-4">
-                <button onClick={() => setEditingCell(null)} className="flex-1 py-3 bg-gray-200 rounded-xl text-gray-700 font-bold">취소</button>
+                <button onClick={() => setEditingCell(null)} className="flex-1 py-3 bg-rose-100 rounded-xl text-rose-800 font-bold hover:bg-rose-200">취소</button>
                 <button 
                   onClick={() => {
                     const val = Number(editValue) || 0;
                     setSales(prev => ({ ...prev, [editingCell.day]: { ...(prev[editingCell.day] || { delivery: 0, cash: 0, card: 0 }), [editingCell.field]: val }}));
                     setEditingCell(null);
                   }}
-                  className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold"
+                  className="flex-1 py-3 bg-rose-300 text-rose-950 rounded-xl font-bold hover:bg-rose-400 shadow-sm"
                 >
                   수정 완료
                 </button>

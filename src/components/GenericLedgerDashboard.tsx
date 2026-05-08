@@ -153,23 +153,23 @@ export function GenericLedgerDashboard({
   };
 
   const buttonClasses = {
-      blue: "bg-blue-600 hover:bg-blue-700",
-      green: "bg-green-600 hover:bg-green-700",
-      red: "bg-red-600 hover:bg-red-700",
-      purple: "bg-purple-600 hover:bg-purple-700",
+      blue: "bg-sky-200 hover:bg-sky-300 text-sky-900 border border-sky-300",
+      green: "bg-emerald-200 hover:bg-emerald-300 text-emerald-900 border border-emerald-300",
+      red: "bg-rose-200 hover:bg-rose-300 text-rose-900 border border-rose-300",
+      purple: "bg-violet-200 hover:bg-violet-300 text-violet-900 border border-violet-300",
   };
 
   return (
-    <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm overflow-hidden w-full mb-4">
+    <div className="bg-sky-50/50 p-3 rounded-xl border border-sky-200 shadow-sm overflow-hidden w-full mb-4">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="font-bold text-xs text-gray-900">{title}</h3>
+        <h3 className="font-bold text-xs text-sky-900">{title}</h3>
         <div className="flex gap-2">
-            <select value={filter} onChange={e => setFilter(e.target.value)} className="border border-gray-200 rounded-lg px-1.5 py-0.5 text-[10px]">
+            <select value={filter} onChange={e => setFilter(e.target.value)} className="border border-sky-200 bg-white rounded-lg px-1.5 py-0.5 text-[10px] text-sky-900">
                 <option value="전체">전체</option>
                 {items.map(i => <option key={i} value={i}>{i}</option>)}
             </select>
           {!isReadOnly && (
-            <button onClick={() => { setEditingItemId(null); setShowModal(true); }} className={`px-2 py-0.5 ${buttonClasses[buttonColor]} text-white rounded-lg text-[10px] font-bold shadow-sm transition`}>
+            <button onClick={() => { setEditingItemId(null); setShowModal(true); }} className={`px-2 py-0.5 ${buttonClasses[buttonColor]} rounded-lg text-[10px] font-bold shadow-sm transition`}>
               지출 입력
             </button>
           )}
@@ -178,40 +178,40 @@ export function GenericLedgerDashboard({
       
       {extraContent && <div className="mb-4">{extraContent}</div>}
       
-      <div className="overflow-auto max-h-[40vh] border rounded-lg border-gray-100 shadow-inner bg-gray-50/30">
+      <div className="overflow-auto max-h-[40vh] border rounded-lg border-sky-200 shadow-inner bg-sky-100/30">
         <table className="w-full text-[10px] border-separate border-spacing-0">
           <thead className="sticky top-0 z-30">
-            <tr className="bg-gray-50 border-b border-gray-100">
-              <th className="sticky left-0 bg-gray-50 z-40 border-r border-b border-gray-100 p-1.5 font-semibold text-gray-700 text-center whitespace-nowrap text-[9px]">날짜</th>
-              <th className="border-r border-b border-gray-100 p-1.5 font-semibold text-gray-700 text-right whitespace-nowrap text-[9px]">명칭</th>
-              <th className="border-r border-b border-gray-100 p-1.5 font-semibold text-gray-700 text-right whitespace-nowrap text-[9px]">금액</th>
-              <th className="border-r border-b border-gray-100 p-1.5 font-semibold text-gray-700 text-right whitespace-nowrap text-[9px]">비고</th>
-              <th className="border-r border-b border-gray-100 p-1.5 font-semibold text-gray-700 text-right whitespace-nowrap text-[9px]">상태</th>
-              <th className="border-b border-gray-100 p-1.5 font-semibold text-gray-700 text-right whitespace-nowrap text-[9px]">수정</th>
+            <tr className="bg-sky-100 border-b border-sky-200">
+              <th className="sticky left-0 bg-sky-100 z-40 border-r border-b border-sky-200 p-1.5 font-semibold text-sky-800 text-center whitespace-nowrap text-[9px]">날짜</th>
+              <th className="border-r border-b border-sky-200 p-1.5 font-semibold text-sky-800 text-right whitespace-nowrap text-[9px]">명칭</th>
+              <th className="border-r border-b border-sky-200 p-1.5 font-semibold text-sky-800 text-right whitespace-nowrap text-[9px]">금액</th>
+              <th className="border-r border-b border-sky-200 p-1.5 font-semibold text-sky-800 text-right whitespace-nowrap text-[9px]">비고</th>
+              <th className="border-r border-b border-sky-200 p-1.5 font-semibold text-sky-800 text-right whitespace-nowrap text-[9px]">상태</th>
+              <th className="border-b border-sky-200 p-1.5 font-semibold text-sky-800 text-right whitespace-nowrap text-[9px]">수정</th>
             </tr>
           </thead>
           <tbody>
             {filteredData.map(d => (
-              <tr key={d.id} className="bg-white hover:bg-gray-50 border-b border-gray-50 transition-colors">
-                <td className="sticky left-0 bg-inherit border-r border-b p-1.5 text-center text-gray-800 text-[9px] border-gray-50 whitespace-nowrap">{formatDate(d.date)}</td>
-                <td className="border-r border-b p-1.5 text-gray-800 text-[9px] font-medium border-gray-50 text-right whitespace-nowrap">{d.itemName}</td>
-                <td className="border-r border-b p-1.5 text-right text-gray-900 text-[9px] font-semibold border-gray-50 whitespace-nowrap">{d.amount.toLocaleString()}</td>
-                <td className="border-r border-b p-1.5 text-gray-600 text-[9px] border-gray-50 text-right whitespace-nowrap">{d.remarks}</td>
-                <td className="border-r border-b p-1.5 text-right border-gray-50 whitespace-nowrap">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${d.status === '입금완료' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              <tr key={d.id} className="bg-white hover:bg-sky-50 border-b border-sky-100 transition-colors">
+                <td className="sticky left-0 bg-inherit border-r border-b p-1.5 text-center text-sky-900 text-[9px] border-sky-100 whitespace-nowrap">{formatDate(d.date)}</td>
+                <td className="border-r border-b p-1.5 text-sky-900 text-[9px] font-medium border-sky-100 text-right whitespace-nowrap">{d.itemName}</td>
+                <td className="border-r border-b p-1.5 text-right text-sky-950 text-[9px] font-semibold border-sky-100 whitespace-nowrap">{d.amount.toLocaleString()}</td>
+                <td className="border-r border-b p-1.5 text-sky-700 text-[9px] border-sky-100 text-right whitespace-nowrap">{d.remarks}</td>
+                <td className="border-r border-b p-1.5 text-right border-sky-100 whitespace-nowrap">
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${d.status === '입금완료' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
                         {d.status}
                     </span>
                 </td>
-                <td className="border-b p-1.5 text-right border-gray-50">
-                    {!isReadOnly && <button onClick={() => openEditModal(d)} className="text-[9px] text-blue-600 font-bold hover:underline">수정</button>}
+                <td className="border-b p-1.5 text-right border-sky-100">
+                    {!isReadOnly && <button onClick={() => openEditModal(d)} className="text-[9px] text-sky-600 font-bold hover:underline">수정</button>}
                 </td>
               </tr>
             ))}
-            <tr className="bg-gray-100 font-bold border-b border-gray-100">
-                <td colSpan={2} className="sticky left-0 bg-gray-100 border-r p-1.5 text-center text-[9px] border-gray-100 whitespace-nowrap">합계</td>
-                <td className="border-r p-1.5 text-right text-gray-900 text-[9px] font-semibold border-gray-100 whitespace-nowrap">{filteredTotalAmount.toLocaleString()}</td>
-                <td className="border-r p-1.5 text-[9px] border-gray-100"></td>
-                <td className="border-r p-1.5 text-[9px] border-gray-100"></td>
+            <tr className="bg-sky-200 font-bold border-b border-sky-300">
+                <td colSpan={2} className="sticky left-0 bg-sky-200 border-r p-1.5 text-center text-sky-900 text-[9px] border-sky-300 whitespace-nowrap">합계</td>
+                <td className="border-r p-1.5 text-right text-sky-950 text-[9px] font-semibold border-sky-300 whitespace-nowrap">{filteredTotalAmount.toLocaleString()}</td>
+                <td className="border-r p-1.5 text-[9px] border-sky-300"></td>
+                <td className="border-r p-1.5 text-[9px] border-sky-300"></td>
                 <td className="p-1.5 text-[9px]"></td>
             </tr>
           </tbody>
